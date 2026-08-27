@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — Qaisar Ali Portfolio</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+/* ═══════════════════════════════ RESET ═══════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;color:#0a0a0a;background:#f4f4f0}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font:inherit;color:inherit}
+img{display:block;max-width:100%}
+ul{list-style:none}
+
+/* ═══════════════════════════════ TOKENS ═══════════════════════════════ */
+:root{
+  --yellow:#ffdf59;--yellow-h:#f0cc3d;--ink:#0a0a0a;--ink2:#1a1a1a;
+  --muted:#6b6b6b;--faint:#a3a39b;--line:#e5e5dd;--line2:#d4d4cc;
+  --bg:#f4f4f0;--surface:#fff;--surface2:#f8f8f4;
+  --radius:10px;--radius-lg:16px;
+  --shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --sidebar:240px;--header:60px;
+  --success:#22c55e;--danger:#ef4444;--warn:#f59e0b;
+  --font-mono:'JetBrains Mono',monospace;
+}
+
+/* ═══════════════════════════════ UTILITIES ═══════════════════════════ */
+.hidden{display:none!important}
+.sr-only{position:absolute;left:-9999px}
+.text-muted{color:var(--muted)}
+.text-danger{color:var(--danger)}
+.text-success{color:var(--success)}
+.badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.02em}
+.badge--warn{background:#fef3c7;color:#92400e}
+.badge--success{background:#dcfce7;color:#166534}
+.badge--danger{background:#fee2e2;color:#991b1b}
+.mono{font-family:var(--font-mono);font-size:12px}
+
+/* ═══════════════════════════════ LOGIN ══════════════════════════════ */
+#loginScreen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#fefce8 0%,#fff 60%,#fffbeb 100%);
+  padding:24px;
+}
+.login-card{
+  width:100%;max-width:420px;background:var(--surface);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);overflow:hidden;
+}
+.login-card__header{
+  background:var(--ink);padding:32px 32px 28px;text-align:center;
+}
+.login-card__logo{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:52px;height:52px;border-radius:14px;background:var(--yellow);
+  font-size:1.1rem;font-weight:700;color:var(--ink);margin-bottom:16px;
+}
+.login-card__header h1{color:#fff;font-size:1.2rem;margin-bottom:4px}
+.login-card__header p{color:rgba(255,255,255,.55);font-size:.85rem}
+.login-card__body{padding:32px}
+.login-creds-box{
+  background:#fef9e7;border:1px solid #fde68a;border-radius:8px;
+  padding:14px 16px;margin-bottom:24px;
+}
+.login-creds-box p{font-size:.8rem;color:#92400e;margin-bottom:6px;font-weight:600}
+.login-creds-box code{font-family:var(--font-mono);font-size:.8rem;color:#92400e;display:block;margin:2px 0}
+.login-warn{
+  background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;
+  padding:10px 14px;margin-bottom:20px;font-size:.78rem;color:#b91c1c;
+}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.form-group input{
+  width:100%;padding:11px 14px;border:1.5px solid var(--line2);border-radius:8px;
+  background:var(--surface);font-size:.95rem;
+  transition:border-color .25s,box-shadow .25s;
+}
+.form-group input:focus{outline:none;border-color:var(--yellow-h);box-shadow:0 0 0 3px rgba(255,223,89,.25)}
+.login-error{color:var(--danger);font-size:.82rem;margin-bottom:12px;display:none}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:11px 20px;
+  border-radius:100px;font-weight:600;font-size:.88rem;
+  cursor:pointer;transition:all .25s;border:1.5px solid transparent;white-space:nowrap;
+}
+.btn--primary{background:var(--yellow);color:var(--ink);border-color:var(--yellow);box-shadow:0 4px 14px rgba(255,223,89,.4)}
+.btn--primary:hover{background:var(--yellow-h);transform:translateY(-1px)}
+.btn--ghost{background:transparent;color:var(--muted);border-color:var(--line2)}
+.btn--ghost:hover{border-color:var(--ink);color:var(--ink);background:var(--surface2)}
+.btn--danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn--danger:hover{background:#dc2626}
+.btn--success{background:var(--success);color:#fff;border-color:var(--success)}
+.btn--sm{padding:7px 14px;font-size:.8rem}
+.btn--block{width:100%;justify-content:center}
+.btn--icon{padding:8px;border-radius:8px}
+
+/* ═══════════════════════════════ LAYOUT ══════════════════════════════ */
+#adminApp{display:flex;height:100vh;overflow:hidden}
+
+/* ─── sidebar ─── */
+.sidebar{
+  width:var(--sidebar);flex-shrink:0;background:var(--ink2);display:flex;
+  flex-direction:column;overflow-y:auto;overflow-x:hidden;
+  transition:width .3s ease;position:relative;z-index:10;
+}
+.sidebar__head{
+  padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.08);
+}
+.sidebar__logo{
+  display:flex;align-items:center;gap:10px;color:#fff;
+}
+.sidebar__logo-mark{
+  width:34px;height:34px;border-radius:9px;background:var(--yellow);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.85rem;color:var(--ink);flex-shrink:0;
+}
+.sidebar__logo-name{font-size:.88rem;font-weight:600;color:rgba(255,255,255,.9)}
+.sidebar__logo-sub{font-size:.7rem;color:rgba(255,255,255,.4)}
+
+.sidebar__nav{padding:12px 8px;flex:1}
+.nav-group{margin-bottom:4px}
+.nav-group__label{
+  font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;
+  color:rgba(255,255,255,.3);padding:8px 10px 4px;font-weight:600;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+  color:rgba(255,255,255,.6);font-size:.84rem;font-weight:500;cursor:pointer;
+  transition:all .2s;border:none;background:none;width:100%;text-align:left;
+}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0;opacity:.8}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.nav-item.is-active{background:rgba(255,223,89,.15);color:var(--yellow)}
+.nav-item.is-active svg{opacity:1}
+
+.sidebar__footer{
+  padding:12px 8px;border-top:1px solid rgba(255,255,255,.08);
+}
+.sidebar__storage{
+  padding:6px 10px 10px;
+}
+.sidebar__storage p{font-size:.7rem;color:rgba(255,255,255,.3);margin-bottom:4px}
+.storage-bar{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.storage-bar__fill{height:100%;background:var(--yellow);border-radius:2px;transition:width .5s}
+
+/* ─── main area ─── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+.topbar{
+  height:var(--header);background:var(--surface);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;flex-shrink:0;gap:16px;
+}
+.topbar__title{font-size:1rem;font-weight:700;color:var(--ink)}
+.topbar__right{display:flex;align-items:center;gap:10px}
+.topbar__site-link{
+  display:flex;align-items:center;gap:6px;font-size:.8rem;
+  color:var(--muted);padding:6px 12px;border:1px solid var(--line2);
+  border-radius:100px;transition:all .2s;
+}
+.topbar__site-link:hover{color:var(--ink);border-color:var(--ink)}
+.topbar__site-link svg{width:13px;height:13px;stroke:currentColor}
+.avatar{
+  width:34px;height:34px;border-radius:50%;background:var(--yellow);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.8rem;color:var(--ink);cursor:pointer;flex-shrink:0;
+}
+
+.content-area{flex:1;overflow-y:auto;padding:28px 32px}
+
+/* ─── panel sections ─── */
+.panel-section{display:none}
+.panel-section.is-active{display:block}
+
+/* ─── section header ─── */
+.section-hd{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;margin-bottom:28px;
+}
+.section-hd h2{font-size:1.25rem;font-weight:700}
+.section-hd p{font-size:.85rem;color:var(--muted);margin-top:3px}
+
+/* ═══════════════════════════════ DASHBOARD ══════════════════════════ */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+.dash-stat{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;
+}
+.dash-stat__number{font-size:1.8rem;font-weight:700;line-height:1;color:var(--ink)}
+.dash-stat__label{font-size:.8rem;color:var(--muted);margin-top:4px}
+.dash-creds{
+  background:var(--ink2);border-radius:var(--radius-lg);padding:24px 28px;margin-bottom:24px;
+  display:flex;gap:32px;flex-wrap:wrap;align-items:center;
+}
+.dash-creds__title{color:rgba(255,255,255,.5);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.dash-creds__val{color:var(--yellow);font-family:var(--font-mono);font-size:1rem;font-weight:500}
+.dash-warn-banner{
+  background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--radius);
+  padding:14px 18px;margin-bottom:28px;display:flex;gap:12px;align-items:flex-start;
+}
+.dash-warn-banner svg{width:18px;height:18px;stroke:#f59e0b;flex-shrink:0;margin-top:1px}
+.dash-warn-banner p{font-size:.84rem;color:#92400e}
+.dash-warn-banner strong{display:block;margin-bottom:2px}
+
+.quick-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.quick-link{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;cursor:pointer;transition:all .2s;text-align:left;
+  display:flex;flex-direction:column;gap:8px;
+}
+.quick-link:hover{border-color:var(--yellow-h);box-shadow:0 0 0 3px rgba(255,223,89,.15);transform:translateY(-2px)}
+.quick-link svg{width:20px;height:20px;stroke:var(--muted)}
+.quick-link span{font-size:.84rem;font-weight:600;color:var(--ink)}
+.quick-link small{font-size:.75rem;color:var(--muted)}
+
+/* ═══════════════════════════════ THEME SWITCHER ══════════════════════ */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.theme-card{
+  border:2px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;
+  cursor:pointer;transition:all .25s;
+}
+.theme-card.is-active{border-color:var(--yellow-h);box-shadow:0 0 0 3px rgba(255,223,89,.3)}
+.theme-card:hover:not(.is-active){border-color:var(--line2);transform:translateY(-2px);box-shadow:var(--shadow)}
+.theme-card__preview{height:80px;display:flex;align-items:center;justify-content:center;gap:6px}
+.theme-card__swatch{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
+.theme-card__footer{padding:12px 14px;background:var(--surface);display:flex;align-items:center;justify-content:space-between}
+.theme-card__footer span{font-size:.83rem;font-weight:600}
+.theme-check{width:18px;height:18px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.theme-card.is-active .theme-check{opacity:1}
+.theme-check svg{width:11px;height:11px;stroke:#fff;stroke-width:2.5}
+
+/* ═══════════════════════════════ CARDS (services/achievements/portfolio) ═ */
+.item-list{display:flex;flex-direction:column;gap:14px}
+.item-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;
+}
+.item-card__head{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  border-bottom:1px solid var(--line);background:var(--surface2);
+  cursor:pointer;user-select:none;
+}
+.item-card__head h4{flex:1;font-size:.9rem;font-weight:600}
+.item-card__head .badge{flex-shrink:0}
+.item-card__toggle{width:20px;height:20px;stroke:var(--muted);flex-shrink:0;transition:transform .25s}
+.item-card.is-open .item-card__toggle{transform:rotate(180deg)}
+.item-card__body{padding:16px;display:none}
+.item-card.is-open .item-card__body{display:block}
+.item-card__actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+
+.field-row{display:grid;gap:12px;margin-bottom:12px}
+.field-row--2{grid-template-columns:1fr 1fr}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-group label{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.field-group input,.field-group textarea,.field-group select{
+  padding:9px 12px;border:1.5px solid var(--line2);border-radius:8px;font-size:.88rem;
+  background:var(--surface);transition:border-color .2s,box-shadow .2s;
+}
+.field-group input:focus,.field-group textarea:focus,.field-group select:focus{
+  outline:none;border-color:var(--yellow-h);box-shadow:0 0 0 3px rgba(255,223,89,.2);
+}
+.field-group textarea{resize:vertical;min-height:80px}
+
+.tag-input-wrap{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1.5px solid var(--line2);border-radius:8px;background:var(--surface);cursor:text}
+.tag-input-wrap:focus-within{border-color:var(--yellow-h);box-shadow:0 0 0 3px rgba(255,223,89,.2)}
+.tag-pill{display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:100px;padding:2px 8px;font-size:.77rem;font-weight:500}
+.tag-pill button{line-height:1;color:var(--muted);font-size:13px;transition:color .15s}
+.tag-pill button:hover{color:var(--danger)}
+.tag-input-wrap input{border:none;outline:none;font-size:.83rem;min-width:120px;flex:1;background:transparent}
+
+.icon-picker{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border:1.5px solid var(--line2);border-radius:8px}
+.icon-opt{
+  width:38px;height:38px;border-radius:8px;border:1.5px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;
+  background:var(--surface);
+}
+.icon-opt svg{width:17px;height:17px;stroke:var(--muted)}
+.icon-opt:hover{border-color:var(--yellow-h);background:#fef9e7}
+.icon-opt.is-selected{border-color:var(--yellow-h);background:var(--yellow);box-shadow:0 0 0 2px rgba(255,223,89,.3)}
+.icon-opt.is-selected svg{stroke:var(--ink)}
+
+/* ═══════════════════════════════ MEDIA MANAGER ══════════════════════ */
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px}
+.media-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.media-card__preview{
+  height:140px;background:var(--surface2);display:flex;align-items:center;
+  justify-content:center;position:relative;overflow:hidden;
+}
+.media-card__preview img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.media-card__preview .placeholder{color:var(--faint);text-align:center}
+.media-card__preview .placeholder svg{width:36px;height:36px;stroke:currentColor;margin:0 auto 6px}
+.media-card__preview .placeholder span{font-size:.75rem;display:block}
+.media-card__info{padding:12px 14px}
+.media-card__info h4{font-size:.84rem;font-weight:600;margin-bottom:2px}
+.media-card__info p{font-size:.75rem;color:var(--muted);margin-bottom:10px}
+.upload-btn{position:relative;overflow:hidden}
+.upload-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+.upload-progress{height:3px;background:var(--line);border-radius:2px;margin-top:8px;overflow:hidden;display:none}
+.upload-progress__fill{height:100%;background:var(--yellow-h);border-radius:2px;width:0;transition:width .4s}
+.media-card--clear button{display:block;width:100%;font-size:.78rem;color:var(--danger);padding:4px 0;text-align:center}
+.media-card--clear button:hover{text-decoration:underline}
+
+/* ═══════════════════════════════ PROJECT GALLERY ═══════════════════ */
+.gallery-thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.gallery-thumb{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1.5px solid var(--line2);flex-shrink:0}
+.gallery-thumb img{width:100%;height:100%;object-fit:cover}
+.gallery-thumb__remove{
+  position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
+  background:rgba(0,0,0,.65);color:#fff;font-size:12px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.gallery-thumb__remove:hover{background:var(--danger)}
+
+/* ═══════════════════════════════ CONTENT EDITOR ════════════════════ */
+.content-page-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+.cp-tab{
+  padding:8px 16px;border-radius:100px;font-size:.82rem;font-weight:600;
+  border:1.5px solid var(--line2);cursor:pointer;transition:all .2s;background:var(--surface);
+}
+.cp-tab.is-active{background:var(--yellow);border-color:var(--yellow-h);color:var(--ink)}
+.cp-tab:hover:not(.is-active){border-color:var(--ink);background:var(--surface2)}
+
+.content-fields-wrap{display:flex;flex-direction:column;gap:14px}
+
+/* ═══════════════════════════════ CONTACT INFO ══════════════════════ */
+.contact-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+
+/* ═══════════════════════════════ TOAST ═══════════════════════════════ */
+.toast-stack{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.toast{
+  background:var(--ink2);color:#fff;padding:12px 18px;border-radius:10px;
+  font-size:.84rem;font-weight:500;box-shadow:var(--shadow-lg);
+  transform:translateY(10px);opacity:0;transition:all .3s;
+  display:flex;align-items:center;gap:10px;max-width:320px;
+}
+.toast.is-visible{transform:translateY(0);opacity:1}
+.toast--success .toast__dot{background:var(--success)}
+.toast--error .toast__dot{background:var(--danger)}
+.toast--warn .toast__dot{background:var(--warn)}
+.toast__dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--yellow)}
+
+/* ═══════════════════════════════ MODAL ════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.modal-overlay.is-open{opacity:1;pointer-events:auto}
+.modal{
+  background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:560px;
+  max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);
+  transform:scale(.95) translateY(10px);transition:transform .3s;
+}
+.modal-overlay.is-open .modal{transform:scale(1) translateY(0)}
+.modal__head{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.modal__head h3{font-size:1rem;font-weight:700}
+.modal__body{padding:24px}
+.modal__foot{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+.modal-close{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--surface2)}
+.modal-close svg{width:16px;height:16px;stroke:var(--muted)}
+
+/* ═══════════════════════════════ PASSWORD CHANGE ═══════════════════ */
+.pwd-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px;max-width:480px}
+
+/* ═══════════════════════════════ RESPONSIVE ═══════════════════════ */
+@media(max-width:768px){
+  .sidebar{position:fixed;left:-280px;top:0;bottom:0;z-index:200;transition:left .3s}
+  .sidebar.is-mobile-open{left:0}
+  .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:190;display:none}
+  .sidebar-overlay.is-visible{display:block}
+  .content-area{padding:18px}
+  .contact-info-grid{grid-template-columns:1fr}
+  .field-row--2{grid-template-columns:1fr}
+  .topbar{padding:0 16px}
+  #menuToggle{display:flex}
+}
+@media(min-width:769px){#menuToggle{display:none}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ════════════════════════ LOGIN SCREEN ════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-card__header">
+      <div class="login-card__logo">QA</div>
+      <h1>Portfolio Admin</h1>
+      <p>Qaisar Ali — Site Management</p>
+    </div>
+    <div class="login-card__body">
+      <div class="login-creds-box" id="loginCredsBox">
+        <p>🔒 Sign in with your admin credentials.</p>
+      </div>
+      <div class="login-warn">
+        ⚠️ <strong>Change your password before going live.</strong> Use Settings → Change Password after logging in.
+      </div>
+      <div class="form-group">
+        <label for="loginUser">Username</label>
+        <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="loginPass">Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <p class="login-error" id="loginError">Incorrect username or password.</p>
+      <button class="btn btn--primary btn--block" id="loginBtn">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ ADMIN APP ════════════════════════ -->
+<div id="adminApp" class="hidden">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__head">
+      <div class="sidebar__logo">
+        <div class="sidebar__logo-mark">QA</div>
+        <div><div class="sidebar__logo-name">Qaisar Ali</div><div class="sidebar__logo-sub">Admin Panel</div></div>
+      </div>
+    </div>
+
+    <nav class="sidebar__nav">
+      <div class="nav-group">
+        <div class="nav-group__label">Overview</div>
+        <button class="nav-item is-active" data-section="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group__label">Content</div>
+        <button class="nav-item" data-section="content">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Page Text
+        </button>
+        <button class="nav-item" data-section="services">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8.5 9.5V20"/></svg>
+          Services &amp; Pricing
+        </button>
+        <button class="nav-item" data-section="portfolio">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Portfolio
+        </button>
+        <button class="nav-item" data-section="achievements">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.6-4.4 4 1.3 5.9L12 16.4l-5.4 3-1.3-5.9-4.4-4 5.9-.6L12 3.5Z"/></svg>
+          Achievements
+        </button>
+        <button class="nav-item" data-section="contact">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          Contact &amp; Social
+        </button>
+        <button class="nav-item" data-section="partners">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Partners
+        </button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group__label">Appearance</div>
+        <button class="nav-item" data-section="theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          Theme Switcher
+        </button>
+        <button class="nav-item" data-section="media">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          Media &amp; Assets
+        </button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group__label">Account</div>
+        <button class="nav-item" data-section="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="sidebar__storage">
+        <p>Storage: <span id="storageKb">—</span> KB used</p>
+        <div class="storage-bar"><div class="storage-bar__fill" id="storageBar" style="width:0%"></div></div>
+      </div>
+      <button class="nav-item" id="logoutBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button id="menuToggle" class="btn btn--icon btn--ghost" style="display:none;padding:7px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="topbar__title" id="topbarTitle">Dashboard</div>
+      </div>
+      <div class="topbar__right">
+        <a href="index.html" target="_blank" class="topbar__site-link">
+          View Site <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        <div class="avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-area">
+
+      <!-- ────────── DASHBOARD ────────── -->
+      <div class="panel-section is-active" id="sec-dashboard">
+        <div class="section-hd">
+          <div><h2>Dashboard</h2><p>Welcome back. Here's a quick overview of your site.</p></div>
+        </div>
+
+        <div class="dash-warn-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <p><strong>Default credentials are active.</strong> Go to Settings → Change Password before publishing this site to the internet.</p>
+        </div>
+
+        <div class="dash-creds">
+          <div><div class="dash-creds__title">Current Username</div><div class="dash-creds__val" id="dashCredsUser">admin</div></div>
+          <div><div class="dash-creds__title">Current Password</div><div class="dash-creds__val">Admin@123</div></div>
+          <div style="margin-left:auto"><a data-section="settings" class="btn btn--primary btn--sm nav-item-link">Change Password →</a></div>
+        </div>
+
+        <div class="dash-grid" id="dashStats"></div>
+
+        <h3 style="font-size:.9rem;font-weight:700;margin-bottom:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Quick Access</h3>
+        <div class="quick-links" id="quickLinks"></div>
+      </div>
+
+      <!-- ────────── PAGE TEXT ────────── -->
+      <div class="panel-section" id="sec-content">
+        <div class="section-hd">
+          <div><h2>Page Text</h2><p>Edit headings and body text on each page. Changes save instantly.</p></div>
+        </div>
+        <div class="content-page-tabs" id="contentTabs"></div>
+        <div class="content-fields-wrap" id="contentFields"></div>
+        <div style="margin-top:18px"><button class="btn btn--primary" id="saveContentBtn">Save All Text Changes</button></div>
+      </div>
+
+      <!-- ────────── SERVICES ────────── -->
+      <div class="panel-section" id="sec-services">
+        <div class="section-hd">
+          <div><h2>Services &amp; Pricing</h2><p>Add, edit, or remove services. Click a card to expand.</p></div>
+          <button class="btn btn--primary" id="addServiceBtn">+ Add Service</button>
+        </div>
+        <div class="item-list" id="servicesList"></div>
+      </div>
+
+      <!-- ────────── PORTFOLIO ────────── -->
+      <div class="panel-section" id="sec-portfolio">
+        <div class="section-hd">
+          <div><h2>Portfolio Projects</h2><p>Manage your projects, thumbnails, descriptions, and live links.</p></div>
+          <button class="btn btn--primary" id="addProjectBtn">+ Add Project</button>
+        </div>
+        <div class="item-list" id="portfolioList"></div>
+      </div>
+
+      <!-- ────────── ACHIEVEMENTS ────────── -->
+      <div class="panel-section" id="sec-achievements">
+        <div class="section-hd">
+          <div><h2>Achievements</h2><p>Add, edit, or remove professional milestones.</p></div>
+          <button class="btn btn--primary" id="addAchievementBtn">+ Add Achievement</button>
+        </div>
+        <div class="item-list" id="achievementsList"></div>
+      </div>
+
+      <!-- ────────── CONTACT ────────── -->
+      <div class="panel-section" id="sec-contact">
+        <div class="section-hd">
+          <div><h2>Contact &amp; Social</h2><p>Update your email, WhatsApp, and social profile links.</p></div>
+        </div>
+        <div class="contact-info-grid" id="contactGrid"></div>
+        <button class="btn btn--primary" id="saveContactBtn">Save Contact Info</button>
+      </div>
+
+      <!-- ────────── PARTNERS ────────── -->
+      <div class="panel-section" id="sec-partners">
+        <div class="section-hd">
+          <div><h2>Partners &amp; Brands</h2><p>Manage the scrolling brand logos in the marquee section.</p></div>
+          <button class="btn btn--primary" id="addPartnerBtn">+ Add Partner</button>
+        </div>
+        <div class="item-list" id="partnersList"></div>
+      </div>
+
+      <!-- ────────── THEME ────────── -->
+      <div class="panel-section" id="sec-theme">
+        <div class="section-hd">
+          <div><h2>Theme Switcher</h2><p>Select a colour palette. It applies immediately on every open page.</p></div>
+        </div>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+
+      <!-- ────────── MEDIA ────────── -->
+      <div class="panel-section" id="sec-media">
+        <div class="section-hd">
+          <div><h2>Media &amp; Assets</h2><p>Upload images. JPEGs are auto-compressed. Max ~3 MB per image recommended.</p></div>
+        </div>
+        <div class="media-grid" id="mediaGrid"></div>
+      </div>
+
+      <!-- ────────── SETTINGS ────────── -->
+      <div class="panel-section" id="sec-settings">
+        <div class="section-hd">
+          <div><h2>Settings</h2><p>Change your admin password and manage site data.</p></div>
+        </div>
+        <div class="pwd-card">
+          <h3 style="font-size:.95rem;font-weight:700;margin-bottom:18px">Change Admin Password</h3>
+          <div class="field-group" style="margin-bottom:12px">
+            <label>Current Password</label>
+            <input type="password" id="pwdCurrent" placeholder="••••••••">
+          </div>
+          <div class="field-group" style="margin-bottom:12px">
+            <label>New Password</label>
+            <input type="password" id="pwdNew" placeholder="Min 8 characters">
+          </div>
+          <div class="field-group" style="margin-bottom:18px">
+            <label>Confirm New Password</label>
+            <input type="password" id="pwdConfirm" placeholder="Repeat new password">
+          </div>
+          <button class="btn btn--primary" id="changePwdBtn">Update Password</button>
+        </div>
+
+        <div style="margin-top:28px">
+          <h3 style="font-size:.95rem;font-weight:700;margin-bottom:12px">Danger Zone</h3>
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:14px">Reset all site content back to the original defaults. This cannot be undone.</p>
+          <button class="btn btn--danger" id="resetDataBtn">Reset All Content to Defaults</button>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main -->
+</div><!-- /adminApp -->
+
+<!-- Toast stack -->
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <div class="modal__head">
+      <h3 id="modalTitle">Confirm</h3>
+      <button class="modal-close" id="modalClose"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal__body"><p id="modalBody" style="font-size:.9rem;color:var(--muted)"></p></div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" id="modalCancel">Cancel</button>
+      <button class="btn btn--danger" id="modalConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/site-data.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   ADMIN PANEL SCRIPT
+   ════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+var QA = window.QASite;
+if(!QA){alert('site-data.js failed to load');return;}
+
+/* ─── helpers ─── */
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function uid(){return 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);}
+function $id(id){return document.getElementById(id);}
+function $qs(sel,ctx){return (ctx||document).querySelector(sel);}
+function $qsa(sel,ctx){return Array.from((ctx||document).querySelectorAll(sel));}
+
+/* ─── toast ─── */
+function toast(msg,type){
+  type=type||'info';
+  var t=document.createElement('div');
+  t.className='toast toast--'+(type==='error'?'error':type==='warn'?'warn':'success');
+  t.innerHTML='<span class="toast__dot"></span><span>'+esc(msg)+'</span>';
+  $id('toastStack').appendChild(t);
+  requestAnimationFrame(function(){t.classList.add('is-visible');});
+  setTimeout(function(){t.classList.remove('is-visible');setTimeout(function(){t.remove();},400);},3400);
+}
+
+/* ─── confirm modal ─── */
+var _confirmCb=null;
+function confirm(title,body,cb){
+  $id('modalTitle').textContent=title;
+  $id('modalBody').textContent=body;
+  _confirmCb=cb;
+  $id('confirmModal').classList.add('is-open');
+}
+$id('modalClose').onclick=$id('modalCancel').onclick=function(){$id('confirmModal').classList.remove('is-open');_confirmCb=null;};
+$id('modalConfirm').onclick=function(){$id('confirmModal').classList.remove('is-open');if(_confirmCb)_confirmCb();_confirmCb=null;};
+window.addEventListener('keydown',function(e){if(e.key==='Escape')$id('confirmModal').classList.remove('is-open');});
+
+/* ─── storage display ─── */
+function refreshStorage(){
+  var u=QA.estimateStorageUsage();
+  var kb=u.kb;
+  $id('storageKb').textContent=kb;
+  var pct=Math.min((kb/4096)*100,100);
+  $id('storageBar').style.width=pct+'%';
+}
+
+/* ─── login ─── */
+function checkAuth(){
+  if(QA.isLoggedIn()){showApp();}
+}
+$id('loginBtn').addEventListener('click',doLogin);
+$id('loginPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+$id('loginUser').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+function doLogin(){
+  var u=$id('loginUser').value.trim();
+  var p=$id('loginPass').value;
+  if(QA.checkLogin(u,p)){
+    QA.setLoggedIn(true);
+    showApp();
+  } else {
+    $id('loginError').style.display='block';
+    $id('loginPass').value='';
+    revealDefaultCreds();
+  }
+}
+/* Credentials stay hidden on the login screen so they aren't shown to
+   every visitor by default. Only reveal the hint after a failed attempt
+   — and only while the password is still the untouched factory default. */
+function revealDefaultCreds(){
+  if(!QA.usingDefaultCredentials())return;
+  $id('loginCredsBox').innerHTML='<p>🔑 Test Credentials</p><code>Username: admin</code><code>Password: Admin@123</code>';
+}
+function showApp(){
+  $id('loginScreen').classList.add('hidden');
+  $id('adminApp').classList.remove('hidden');
+  initApp();
+}
+
+/* ─── nav ─── */
+function setSection(name){
+  $qsa('.panel-section').forEach(function(el){el.classList.remove('is-active');});
+  $qsa('.nav-item').forEach(function(el){el.classList.remove('is-active');});
+  var sec=$id('sec-'+name);
+  if(sec)sec.classList.add('is-active');
+  var btn=$qs('.nav-item[data-section="'+name+'"]');
+  if(btn)btn.classList.add('is-active');
+  var titles={dashboard:'Dashboard',content:'Page Text',services:'Services & Pricing',portfolio:'Portfolio',achievements:'Achievements',contact:'Contact & Social',partners:'Partners',theme:'Theme Switcher',media:'Media & Assets',settings:'Settings'};
+  $id('topbarTitle').textContent=titles[name]||name;
+  // close mobile sidebar
+  $id('sidebar').classList.remove('is-mobile-open');
+  $id('sidebarOverlay').classList.remove('is-visible');
+}
+$qsa('.nav-item').forEach(function(btn){
+  if(!btn.id)btn.addEventListener('click',function(){var s=btn.getAttribute('data-section');if(s)setSection(s);});
+});
+$id('logoutBtn').addEventListener('click',function(){
+  QA.setLoggedIn(false);
+  $id('adminApp').classList.add('hidden');
+  $id('loginScreen').classList.remove('hidden');
+  $id('loginUser').value='';$id('loginPass').value='';
+});
+// mobile menu
+$id('menuToggle').addEventListener('click',function(){
+  $id('sidebar').classList.toggle('is-mobile-open');
+  $id('sidebarOverlay').classList.toggle('is-visible');
+});
+$id('sidebarOverlay').addEventListener('click',function(){
+  $id('sidebar').classList.remove('is-mobile-open');
+  $id('sidebarOverlay').classList.remove('is-visible');
+});
+
+/* ══════════════════════ DASHBOARD ══════════════════════ */
+function renderDashboard(data){
+  var stats=[
+    {n:data.services.length,l:'Services'},
+    {n:data.portfolio.length,l:'Portfolio Projects'},
+    {n:data.achievements.length,l:'Achievements'},
+    {n:data.partners.length,l:'Brand Partners'},
+  ];
+  $id('dashStats').innerHTML=stats.map(function(s){
+    return '<div class="dash-stat"><div class="dash-stat__number">'+s.n+'</div><div class="dash-stat__label">'+s.l+'</div></div>';
+  }).join('');
+
+  var ql=[
+    {s:'content',ic:'✏️',t:'Edit Page Text',d:'Headings & body copy'},
+    {s:'services',ic:'🛠️',t:'Services',d:'Pricing & descriptions'},
+    {s:'portfolio',ic:'🖼️',t:'Portfolio',d:'Projects & thumbnails'},
+    {s:'achievements',ic:'🏆',t:'Achievements',d:'Awards & milestones'},
+    {s:'contact',ic:'📬',t:'Contact Info',d:'Email & social links'},
+    {s:'media',ic:'📷',t:'Media',d:'Photos & logos'},
+    {s:'theme',ic:'🎨',t:'Theme',d:'Colour palettes'},
+    {s:'settings',ic:'🔒',t:'Settings',d:'Password & reset'},
+  ];
+  $id('quickLinks').innerHTML=ql.map(function(q){
+    return '<button class="quick-link" data-section="'+q.s+'"><span style="font-size:1.4rem">'+q.ic+'</span><span>'+q.t+'</span><small>'+q.d+'</small></button>';
+  }).join('');
+  $qsa('.quick-link').forEach(function(b){b.addEventListener('click',function(){setSection(b.getAttribute('data-section'));});});
+
+  var u=QA.usingDefaultCredentials();
+  $id('dashCredsUser').textContent=QA.getCredentials().username;
+  $qs('.dash-warn-banner').style.display=u?'flex':'none';
+}
+
+/* ══════════════════════ PAGE TEXT ══════════════════════ */
+var CONTENT_PAGES=[
+  {id:'home',label:'Home',fields:[
+    {key:'hero.name',label:'Your Name',type:'text'},
+    {key:'hero.title',label:'Role / Title',type:'text'},
+    {key:'hero.tagline',label:'Tagline (italic quote)',type:'text'},
+    {key:'hero.desc',label:'Hero Description',type:'textarea'},
+  ]},
+  {id:'about',label:'About',fields:[
+    {key:'about.heading',label:'Page Heading',type:'text'},
+    {key:'about.timeline.heading',label:'Timeline Heading',type:'text'},
+    {key:'about.skills.heading',label:'Skills Section Heading',type:'text'},
+  ]},
+  {id:'services',label:'Services',fields:[
+    {key:'services.heading',label:'Page Heading',type:'text'},
+  ]},
+  {id:'portfolio',label:'Portfolio',fields:[
+    {key:'portfolio.heading',label:'Page Heading',type:'text'},
+  ]},
+  {id:'achievements',label:'Achievements',fields:[
+    {key:'achievements.heading',label:'Page Heading',type:'text'},
+  ]},
+  {id:'contact',label:'Contact',fields:[
+    {key:'contact.heading',label:'Page Heading',type:'text'},
+  ]},
+];
+var _activeContentPage=CONTENT_PAGES[0].id;
+function renderContentTabs(){
+  $id('contentTabs').innerHTML=CONTENT_PAGES.map(function(p){
+    return '<button class="cp-tab'+(p.id===_activeContentPage?' is-active':'')+'" data-cpid="'+p.id+'">'+p.label+'</button>';
+  }).join('');
+  $qsa('.cp-tab').forEach(function(b){b.addEventListener('click',function(){_activeContentPage=b.getAttribute('data-cpid');renderContentTabs();renderContentFields();});});
+}
+function renderContentFields(){
+  var data=QA.loadData();
+  var page=CONTENT_PAGES.find(function(p){return p.id===_activeContentPage;});
+  if(!page)return;
+  $id('contentFields').innerHTML=page.fields.map(function(f){
+    var val=data.content[f.key]!==undefined?data.content[f.key]:'';
+    if(f.type==='textarea'){
+      return '<div class="field-group"><label>'+esc(f.label)+'</label><textarea rows="3" data-content-key="'+esc(f.key)+'">'+esc(val)+'</textarea></div>';
+    }
+    return '<div class="field-group"><label>'+esc(f.label)+'</label><input type="text" data-content-key="'+esc(f.key)+'" value="'+esc(val)+'"></div>';
+  }).join('');
+}
+$id('saveContentBtn').addEventListener('click',function(){
+  var data=QA.loadData();
+  $qsa('[data-content-key]').forEach(function(el){data.content[el.getAttribute('data-content-key')]=el.value;});
+  var res=QA.saveData(data);
+  if(res.ok){toast('Text changes saved');refreshStorage();}
+  else{toast(res.quota?'Storage full — clear some images first':'Save failed','error');}
+});
+
+/* ══════════════════════ ICON PICKER HTML ═══════════════════ */
+function iconPickerHtml(selected){
+  return '<div class="icon-picker">'+Object.keys(QA.ICONS).map(function(k){
+    var paths=QA.ICONS[k];
+    return '<div class="icon-opt'+(k===selected?' is-selected':'')+'" data-icon="'+k+'"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg></div>';
+  }).join('')+'</div>';
+}
+function bindIconPicker(container,cb){
+  $qsa('.icon-opt',container).forEach(function(opt){
+    opt.addEventListener('click',function(){
+      $qsa('.icon-opt',container).forEach(function(o){o.classList.remove('is-selected');});
+      opt.classList.add('is-selected');
+      if(cb)cb(opt.getAttribute('data-icon'));
+    });
+  });
+}
+
+/* ══════════════════════ TAG INPUT ══════════════════════ */
+function TagInput(wrap){
+  function render(tags){
+    wrap.innerHTML=tags.map(function(t){return '<span class="tag-pill">'+esc(t)+'<button type="button" title="Remove">×</button></span>';}).join('')+'<input placeholder="Type and press Enter…">';
+    $qsa('.tag-pill button',wrap).forEach(function(b,i){b.onclick=function(){tags.splice(i,1);render(tags);};});
+    var inp=wrap.querySelector('input');
+    inp.onkeydown=function(e){
+      if((e.key==='Enter'||e.key===',')&&inp.value.trim()){
+        e.preventDefault();tags.push(inp.value.trim().replace(/,$/,''));render(tags);
+      } else if(e.key==='Backspace'&&!inp.value&&tags.length){tags.pop();render(tags);}
+    };
+  }
+  var _tags=[];
+  return {
+    setTags:function(t){_tags=t.slice();render(_tags);},
+    getTags:function(){return _tags.slice();}
+  };
+}
+
+/* ══════════════════════ SERVICES ══════════════════════ */
+function buildServiceCard(s,idx){
+  var card=document.createElement('div');
+  card.className='item-card';
+  card.setAttribute('data-svc-id',s.id);
+  card.innerHTML=
+    '<div class="item-card__head">' +
+      '<div style="width:28px;height:28px;border-radius:7px;background:var(--yellow);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+QA.ICONS[s.icon||'bolt']+'</svg>'+
+      '</div>'+
+      '<h4>'+esc(s.title)+'</h4>'+
+      '<span class="badge badge--success">'+esc(s.price)+' '+esc(s.unit)+'</span>'+
+      '<svg class="item-card__toggle" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'+
+    '</div>'+
+    '<div class="item-card__body">'+
+      '<div class="field-row" style="margin-bottom:12px"><div class="field-group" style="grid-column:1/-1"><label>Icon</label>'+iconPickerHtml(s.icon||'bolt')+'</div></div>'+
+      '<div class="field-row field-row--2">'+
+        '<div class="field-group"><label>Service Title</label><input class="svc-title" value="'+esc(s.title)+'"></div>'+
+        '<div class="field-group"><label>Starting Price</label><input class="svc-price" value="'+esc(s.price)+'"></div>'+
+      '</div>'+
+      '<div class="field-row field-row--2">'+
+        '<div class="field-group"><label>Unit (e.g. / project)</label><input class="svc-unit" value="'+esc(s.unit)+'"></div>'+
+        '<div class="field-group"><label>Price Note (optional)</label><input class="svc-note" value="'+esc(s.note||'')+'"></div>'+
+      '</div>'+
+      '<div class="field-group"><label>Description</label><textarea class="svc-desc" rows="3">'+esc(s.description)+'</textarea></div>'+
+      '<div class="item-card__actions">'+
+        '<button class="btn btn--primary btn--sm svc-save-btn">Save</button>'+
+        '<button class="btn btn--danger btn--sm svc-del-btn">Delete</button>'+
+      '</div>'+
+    '</div>';
+
+  // toggle
+  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+
+  // icon picker
+  var selectedIcon=s.icon||'bolt';
+  bindIconPicker(card,function(ic){selectedIcon=ic;});
+
+  // save
+  $qs('.svc-save-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    var data=QA.loadData();
+    var idx2=data.services.findIndex(function(x){return x.id===s.id;});
+    if(idx2<0)return;
+    data.services[idx2].icon=selectedIcon;
+    data.services[idx2].title=$qs('.svc-title',card).value.trim();
+    data.services[idx2].price=$qs('.svc-price',card).value.trim();
+    data.services[idx2].unit=$qs('.svc-unit',card).value.trim();
+    data.services[idx2].note=$qs('.svc-note',card).value.trim();
+    data.services[idx2].description=$qs('.svc-desc',card).value.trim();
+    $qs('h4',card).textContent=data.services[idx2].title;
+    $qs('.badge',card).textContent=data.services[idx2].price+' '+data.services[idx2].unit;
+    var res=QA.saveData(data);
+    if(res.ok){toast('Service saved');refreshStorage();}else{toast('Save failed','error');}
+  });
+
+  // delete
+  $qs('.svc-del-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    confirm('Delete Service','Delete "'+s.title+'"? This cannot be undone.',function(){
+      var data=QA.loadData();
+      data.services=data.services.filter(function(x){return x.id!==s.id;});
+      QA.saveData(data);refreshStorage();renderServices();toast('Service deleted','warn');
+    });
+  });
+  return card;
+}
+
+function renderServices(){
+  var data=QA.loadData();
+  var list=$id('servicesList');list.innerHTML='';
+  data.services.forEach(function(s,i){list.appendChild(buildServiceCard(s,i));});
+}
+
+$id('addServiceBtn').addEventListener('click',function(){
+  var data=QA.loadData();
+  var s={id:uid(),icon:'bolt',title:'New Service',description:'Describe this service.',price:'$500',unit:'/ project',note:''};
+  data.services.push(s);
+  QA.saveData(data);refreshStorage();renderServices();
+  // auto-open last card
+  var cards=$qsa('#servicesList .item-card');
+  if(cards.length)cards[cards.length-1].classList.add('is-open');
+  toast('New service added');
+});
+
+/* ══════════════════════ PORTFOLIO ══════════════════════ */
+var CAT_OPTS=['os2','api','performance'];
+var CAT_LABELS={'os2':'Custom OS 2.0 Themes','api':'API Integrations & Apps','performance':'Performance & Custom Logic'};
+
+function buildProjectCard(p){
+  var catOpts=CAT_OPTS.map(function(c){return '<option value="'+c+'"'+(c===p.category?' selected':'')+'>'+CAT_LABELS[c]+'</option>';}).join('');
+  var tagsHtml='<div class="tag-input-wrap" data-proj-tags><input placeholder="Type tag, press Enter…"></div>';
+  var featHtml='<div class="tag-input-wrap" data-proj-features><input placeholder="Feature, press Enter…"></div>';
+
+  var card=document.createElement('div');
+  card.className='item-card';
+  card.setAttribute('data-proj-id',p.id);
+  card.innerHTML=
+    '<div class="item-card__head">'+
+      '<h4>'+esc(p.title)+'</h4>'+
+      '<span class="badge badge--success">'+esc(CAT_LABELS[p.category]||p.category)+'</span>'+
+      '<svg class="item-card__toggle" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'+
+    '</div>'+
+    '<div class="item-card__body">'+
+      '<div class="field-row field-row--2">'+
+        '<div class="field-group"><label>Project Title</label><input class="proj-title" value="'+esc(p.title)+'"></div>'+
+        '<div class="field-group"><label>Category</label><select class="proj-cat">'+catOpts+'</select></div>'+
+      '</div>'+
+      '<div class="field-row field-row--2">'+
+        '<div class="field-group"><label>Category Label</label><input class="proj-catLabel" value="'+esc(p.categoryLabel||'')+'"></div>'+
+        '<div class="field-group"><label>Card Tag Line</label><input class="proj-tag" value="'+esc(p.tag||'')+'"></div>'+
+      '</div>'+
+      '<div class="field-group"><label>Short Description (card)</label><textarea class="proj-desc" rows="2">'+esc(p.description)+'</textarea></div>'+
+      '<div class="field-group"><label>Full Description (lightbox)</label><textarea class="proj-fulldesc" rows="4">'+esc(p.fullDescription||p.description)+'</textarea></div>'+
+      '<div class="field-group"><label>Live Store URL</label><input class="proj-url" type="url" placeholder="https://" value="'+esc(p.liveUrl||'')+'"></div>'+
+      '<div class="field-group"><label>Tech Tags</label>'+tagsHtml+'</div>'+
+      '<div class="field-group"><label>Key Features</label>'+featHtml+'</div>'+
+      '<div class="field-row field-row--2">'+
+        '<div class="field-group"><label>Thumbnail Style</label><select class="proj-thumb">'+
+          QA.THUMB_PATTERNS.map(function(tp){return '<option value="'+tp+'"'+(tp===p.thumbPattern?' selected':'')+'>'+tp+'</option>';}).join('')+
+        '</select></div>'+
+        '<div class="field-group"><label>Featured on Home?</label><select class="proj-featured"><option value="1"'+(p.featured?' selected':'')+'>Yes</option><option value="0"'+(!p.featured?' selected':'')+'>No</option></select></div>'+
+      '</div>'+
+      '<div class="field-group"><label>Project Thumbnail Image (replaces pattern)</label>'+
+        '<div class="upload-btn btn btn--ghost btn--sm" style="margin-top:6px">Upload Image<input type="file" accept="image/*" class="proj-img-upload"></div>'+
+        '<div class="upload-progress"><div class="upload-progress__fill"></div></div>'+
+        (p.thumbImage?'<img src="'+p.thumbImage.replace(/"/g,'&quot;')+'" style="height:60px;margin-top:8px;border-radius:6px;object-fit:cover">':'<p class="mono" style="margin-top:6px;color:var(--faint)">No custom image</p>')+
+      '</div>'+
+      '<div class="field-group"><label>Project Gallery (extra photos shown in the popup)</label>'+
+        '<div class="gallery-thumbs" data-gallery-thumbs></div>'+
+        '<div class="upload-btn btn btn--ghost btn--sm">+ Add Gallery Image<input type="file" accept="image/*" class="proj-gallery-upload"></div>'+
+      '</div>'+
+      '<div class="item-card__actions">'+
+        '<button class="btn btn--primary btn--sm proj-save-btn">Save Project</button>'+
+        '<button class="btn btn--danger btn--sm proj-del-btn">Delete</button>'+
+      '</div>'+
+    '</div>';
+
+  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+
+  // tag inputs
+  var tagInput=TagInput($qs('[data-proj-tags]',card));
+  tagInput.setTags(p.tags||[]);
+  var featInput=TagInput($qs('[data-proj-features]',card));
+  featInput.setTags(p.features||[]);
+
+  // image upload
+  $qs('.proj-img-upload',card).addEventListener('change',function(){
+    var file=this.files[0];if(!file)return;
+    var prog=$qs('.upload-progress',card);
+    var fill=$qs('.upload-progress__fill',card);
+    prog.style.display='block';fill.style.width='30%';
+    QA.compressImage(file,1000,.80).then(function(dataUrl){
+      fill.style.width='100%';
+      var data=QA.loadData();
+      var idx2=data.portfolio.findIndex(function(x){return x.id===p.id;});
+      if(idx2<0)return;
+      data.portfolio[idx2].thumbImage=dataUrl;
+      var res=QA.saveData(data);
+      if(res.ok){toast('Thumbnail uploaded');refreshStorage();}
+      else if(res.quota){toast('Storage full — delete other images first','error');}
+      else{toast('Upload failed','error');}
+      setTimeout(function(){prog.style.display='none';},600);
+    }).catch(function(err){toast(err.message,'error');prog.style.display='none';});
+  });
+
+  // project gallery (multiple extra images shown as a thumbnail strip in the popup)
+  var galleryImages=(p.gallery||[]).slice();
+  function renderGalleryThumbs(){
+    var wrap=$qs('[data-gallery-thumbs]',card);
+    if(!galleryImages.length){wrap.innerHTML='<p class="mono" style="color:var(--faint)">No gallery images yet</p>';return;}
+    wrap.innerHTML=galleryImages.map(function(src,i){
+      return '<div class="gallery-thumb"><img src="'+src.replace(/"/g,'&quot;')+'"><button type="button" class="gallery-thumb__remove" data-gi="'+i+'" aria-label="Remove image">×</button></div>';
+    }).join('');
+    $qsa('.gallery-thumb__remove',wrap).forEach(function(btn){
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        var i=parseInt(btn.getAttribute('data-gi'),10);
+        galleryImages.splice(i,1);
+        persistGallery();
+        renderGalleryThumbs();
+      });
+    });
+  }
+  function persistGallery(){
+    var data=QA.loadData();
+    var idx2=data.portfolio.findIndex(function(x){return x.id===p.id;});
+    if(idx2<0)return null;
+    data.portfolio[idx2].gallery=galleryImages.slice();
+    var res=QA.saveData(data);
+    refreshStorage();
+    return res;
+  }
+  renderGalleryThumbs();
+  $qs('.proj-gallery-upload',card).addEventListener('change',function(){
+    var file=this.files[0];if(!file)return;
+    var input=this;
+    QA.compressImage(file,1000,.80).then(function(dataUrl){
+      galleryImages.push(dataUrl);
+      var res=persistGallery();
+      renderGalleryThumbs();
+      input.value='';
+      if(res&&res.ok){toast('Gallery image added');}
+      else if(res&&res.quota){toast('Storage full — delete other images first','error');}
+      else{toast('Upload failed','error');}
+    }).catch(function(err){toast(err.message,'error');});
+  });
+
+  // save
+  $qs('.proj-save-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    var data=QA.loadData();
+    var idx2=data.portfolio.findIndex(function(x){return x.id===p.id;});
+    if(idx2<0)return;
+    var cat=$qs('.proj-cat',card).value;
+    data.portfolio[idx2].title=$qs('.proj-title',card).value.trim();
+    data.portfolio[idx2].category=cat;
+    data.portfolio[idx2].categoryLabel=$qs('.proj-catLabel',card).value.trim()||CAT_LABELS[cat]||cat;
+    data.portfolio[idx2].tag=$qs('.proj-tag',card).value.trim();
+    data.portfolio[idx2].description=$qs('.proj-desc',card).value.trim();
+    data.portfolio[idx2].fullDescription=$qs('.proj-fulldesc',card).value.trim();
+    data.portfolio[idx2].liveUrl=$qs('.proj-url',card).value.trim();
+    data.portfolio[idx2].tags=tagInput.getTags();
+    data.portfolio[idx2].features=featInput.getTags();
+    data.portfolio[idx2].thumbPattern=$qs('.proj-thumb',card).value;
+    data.portfolio[idx2].featured=$qs('.proj-featured',card).value==='1';
+    $qs('h4',card).textContent=data.portfolio[idx2].title;
+    $qs('.badge',card).textContent=data.portfolio[idx2].categoryLabel;
+    var res=QA.saveData(data);
+    if(res.ok){toast('Project saved');refreshStorage();}else{toast('Save failed','error');}
+  });
+  $qs('.proj-del-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    confirm('Delete Project','Delete "'+p.title+'"? Cannot be undone.',function(){
+      var data=QA.loadData();
+      data.portfolio=data.portfolio.filter(function(x){return x.id!==p.id;});
+      QA.saveData(data);refreshStorage();renderPortfolio();toast('Project deleted','warn');
+    });
+  });
+  return card;
+}
+function renderPortfolio(){
+  var data=QA.loadData();
+  var list=$id('portfolioList');list.innerHTML='';
+  data.portfolio.forEach(function(p){list.appendChild(buildProjectCard(p));});
+}
+$id('addProjectBtn').addEventListener('click',function(){
+  var data=QA.loadData();
+  var p={id:uid(),title:'New Project',category:'os2',categoryLabel:'Custom OS 2.0 Themes',tag:'',description:'Short description.',fullDescription:'Full project description.',liveUrl:'',tags:[],features:[],thumbPattern:'thumb--marque',thumbImage:'',gallery:[],featured:false};
+  data.portfolio.push(p);
+  QA.saveData(data);refreshStorage();renderPortfolio();
+  var cards=$qsa('#portfolioList .item-card');
+  if(cards.length)cards[cards.length-1].classList.add('is-open');
+  toast('New project added');
+});
+
+/* ══════════════════════ ACHIEVEMENTS ══════════════════════ */
+function buildAchCard(a){
+  var card=document.createElement('div');
+  card.className='item-card';
+  card.setAttribute('data-ach-id',a.id);
+  card.innerHTML=
+    '<div class="item-card__head">'+
+      '<h4>'+esc(a.title)+'</h4>'+
+      '<span class="badge badge--warn">'+esc(a.year)+'</span>'+
+      '<svg class="item-card__toggle" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'+
+    '</div>'+
+    '<div class="item-card__body">'+
+      '<div class="field-group" style="margin-bottom:12px"><label>Icon</label>'+iconPickerHtml(a.icon||'star')+'</div>'+
+      '<div class="field-row field-row--2">'+
+        '<div class="field-group"><label>Achievement Title</label><input class="ach-title" value="'+esc(a.title)+'"></div>'+
+        '<div class="field-group"><label>Year / Milestone</label><input class="ach-year" value="'+esc(a.year)+'"></div>'+
+      '</div>'+
+      '<div class="field-row field-row--2">'+
+        '<div class="field-group"><label>Represents</label><input class="ach-rep" value="'+esc(a.represents)+'"></div>'+
+        '<div class="field-group"><label>Company Link (optional)</label><input class="ach-url" placeholder="https://example.com" value="'+esc(a.companyUrl||'')+'"></div>'+
+      '</div>'+
+      '<div class="field-group"><label>Full Description</label><textarea class="ach-desc" rows="3">'+esc(a.description)+'</textarea></div>'+
+      '<div class="item-card__actions">'+
+        '<button class="btn btn--primary btn--sm ach-save-btn">Save</button>'+
+        '<button class="btn btn--danger btn--sm ach-del-btn">Delete</button>'+
+      '</div>'+
+    '</div>';
+
+  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+
+  var selectedIcon=a.icon||'star';
+  bindIconPicker(card,function(ic){selectedIcon=ic;});
+
+  $qs('.ach-save-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    var data=QA.loadData();
+    var idx2=data.achievements.findIndex(function(x){return x.id===a.id;});
+    if(idx2<0)return;
+    data.achievements[idx2].icon=selectedIcon;
+    data.achievements[idx2].title=$qs('.ach-title',card).value.trim();
+    data.achievements[idx2].year=$qs('.ach-year',card).value.trim();
+    data.achievements[idx2].represents=$qs('.ach-rep',card).value.trim();
+    data.achievements[idx2].companyUrl=$qs('.ach-url',card).value.trim();
+    data.achievements[idx2].description=$qs('.ach-desc',card).value.trim();
+    $qs('h4',card).textContent=data.achievements[idx2].title;
+    $qs('.badge',card).textContent=data.achievements[idx2].year;
+    var res=QA.saveData(data);
+    if(res.ok){toast('Achievement saved');refreshStorage();}else{toast('Save failed','error');}
+  });
+  $qs('.ach-del-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    confirm('Delete Achievement','Delete "'+a.title+'"?',function(){
+      var data=QA.loadData();
+      data.achievements=data.achievements.filter(function(x){return x.id!==a.id;});
+      QA.saveData(data);refreshStorage();renderAchievements();toast('Achievement deleted','warn');
+    });
+  });
+  return card;
+}
+function renderAchievements(){
+  var data=QA.loadData();
+  var list=$id('achievementsList');list.innerHTML='';
+  data.achievements.forEach(function(a){list.appendChild(buildAchCard(a));});
+}
+$id('addAchievementBtn').addEventListener('click',function(){
+  var data=QA.loadData();
+  var a={id:uid(),icon:'star',title:'New Achievement',year:'2025',represents:'',companyUrl:'',description:''};
+  data.achievements.push(a);
+  QA.saveData(data);refreshStorage();renderAchievements();
+  var cards=$qsa('#achievementsList .item-card');
+  if(cards.length)cards[cards.length-1].classList.add('is-open');
+  toast('New achievement added');
+});
+
+/* ══════════════════════ CONTACT ══════════════════════ */
+function renderContact(){
+  var data=QA.loadData();var c=data.contact;
+  $id('contactGrid').innerHTML=
+    '<div class="field-group"><label>Email Address</label><input id="ci-email" value="'+esc(c.email)+'"></div>'+
+    '<div class="field-group"><label>WhatsApp Number</label><input id="ci-wa" value="'+esc(c.whatsapp)+'"></div>'+
+    '<div class="field-group"><label>WhatsApp Note</label><input id="ci-wa-note" value="'+esc(c.whatsappNote)+'"></div>'+
+    '<div class="field-group"><label>Based / Location Text</label><input id="ci-based" value="'+esc(c.basedText)+'"></div>'+
+    '<div class="field-group" style="grid-column:1/-1"><label>LinkedIn Profile URL</label><input id="ci-linkedin" value="'+esc(c.linkedinUrl||'')+'"></div>'+
+    '<div class="field-group" style="grid-column:1/-1"><label>GitHub Profile URL</label><input id="ci-github" value="'+esc(c.githubUrl||'')+'"></div>';
+}
+$id('saveContactBtn').addEventListener('click',function(){
+  var data=QA.loadData();
+  data.contact.email=$id('ci-email').value.trim();
+  data.contact.whatsapp=$id('ci-wa').value.trim();
+  data.contact.whatsappNote=$id('ci-wa-note').value.trim();
+  data.contact.basedText=$id('ci-based').value.trim();
+  data.contact.linkedinUrl=$id('ci-linkedin').value.trim();
+  data.contact.githubUrl=$id('ci-github').value.trim();
+  var res=QA.saveData(data);
+  if(res.ok){toast('Contact info saved');refreshStorage();}else{toast('Save failed','error');}
+});
+
+/* ══════════════════════ PARTNERS ══════════════════════ */
+function buildPartnerCard(p){
+  var card=document.createElement('div');
+  card.className='item-card';
+  card.setAttribute('data-partner-id',p.id);
+  card.innerHTML=
+    '<div class="item-card__head">'+
+      '<h4>'+(p.logoImage?'🖼 ':'')+esc(p.name)+'</h4>'+
+      '<svg class="item-card__toggle" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'+
+    '</div>'+
+    '<div class="item-card__body">'+
+      '<div class="field-group"><label>Brand / Agency Name</label><input class="part-name" value="'+esc(p.name)+'"></div>'+
+      '<div class="field-group" style="margin-top:10px"><label>Logo Image (optional — replaces text)</label>'+
+        '<div class="upload-btn btn btn--ghost btn--sm" style="margin-top:6px">Upload Logo<input type="file" accept="image/*" class="part-img-upload"></div>'+
+        '<div class="upload-progress"><div class="upload-progress__fill"></div></div>'+
+        (p.logoImage?'<img src="'+p.logoImage.replace(/"/g,'&quot;')+'" style="height:40px;margin-top:8px;border-radius:4px;object-fit:contain">':'<p class="mono" style="margin-top:6px;color:var(--faint)">Text mode</p>')+
+      '</div>'+
+      '<div class="item-card__actions">'+
+        '<button class="btn btn--primary btn--sm part-save-btn">Save</button>'+
+        '<button class="btn btn--danger btn--sm part-del-btn">Delete</button>'+
+      '</div>'+
+    '</div>';
+
+  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+
+  $qs('.part-img-upload',card).addEventListener('change',function(){
+    var file=this.files[0];if(!file)return;
+    var prog=$qs('.upload-progress',card);
+    var fill=$qs('.upload-progress__fill',card);
+    prog.style.display='block';fill.style.width='30%';
+    QA.compressImage(file,400,.85).then(function(dataUrl){
+      fill.style.width='100%';
+      var data=QA.loadData();
+      var idx2=data.partners.findIndex(function(x){return x.id===p.id;});
+      if(idx2<0)return;
+      data.partners[idx2].logoImage=dataUrl;
+      var res=QA.saveData(data);
+      if(res.ok){toast('Logo uploaded');refreshStorage();}else if(res.quota){toast('Storage full','error');}
+      setTimeout(function(){prog.style.display='none';},600);
+    }).catch(function(err){toast(err.message,'error');prog.style.display='none';});
+  });
+
+  $qs('.part-save-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    var data=QA.loadData();
+    var idx2=data.partners.findIndex(function(x){return x.id===p.id;});
+    if(idx2<0)return;
+    data.partners[idx2].name=$qs('.part-name',card).value.trim();
+    $qs('h4',card).textContent=data.partners[idx2].name;
+    var res=QA.saveData(data);
+    if(res.ok){toast('Partner saved');refreshStorage();}else{toast('Save failed','error');}
+  });
+  $qs('.part-del-btn',card).addEventListener('click',function(e){
+    e.stopPropagation();
+    confirm('Delete Partner','Remove "'+p.name+'"?',function(){
+      var data=QA.loadData();
+      data.partners=data.partners.filter(function(x){return x.id!==p.id;});
+      QA.saveData(data);refreshStorage();renderPartners();toast('Partner removed','warn');
+    });
+  });
+  return card;
+}
+function renderPartners(){
+  var data=QA.loadData();
+  var list=$id('partnersList');list.innerHTML='';
+  data.partners.forEach(function(p){list.appendChild(buildPartnerCard(p));});
+}
+$id('addPartnerBtn').addEventListener('click',function(){
+  var data=QA.loadData();
+  data.partners.push({id:uid(),name:'New Partner',logoImage:''});
+  QA.saveData(data);refreshStorage();renderPartners();
+  var cards=$qsa('#partnersList .item-card');
+  if(cards.length)cards[cards.length-1].classList.add('is-open');
+  toast('Partner added');
+});
+
+/* ══════════════════════ THEME ══════════════════════ */
+var THEME_PREVIEWS={
+  'default':{'bg':'#fff','surface':'#f9f9f5','accent':'#ffdf59','ink':'#0a0a0a'},
+  'midnight-blue':{'bg':'#0b1220','surface':'#101a2e','accent':'#4c8dff','ink':'#f3f6fb'},
+  'charcoal-orange':{'bg':'#171513','surface':'#1e1b18','accent':'#ff7a33','ink':'#f5f1ec'},
+  'emerald-dark':{'bg':'#0c1712','surface':'#101f18','accent':'#2ecc71','ink':'#eff6f1'},
+};
+function renderThemeGrid(){
+  var data=QA.loadData();
+  $id('themeGrid').innerHTML=QA.THEME_LIST.map(function(t){
+    var pv=THEME_PREVIEWS[t.id];
+    return '<div class="theme-card'+(data.theme===t.id?' is-active':'')+'" data-theme-id="'+t.id+'">'+
+      '<div class="theme-card__preview" style="background:'+pv.bg+';border-bottom:1px solid rgba(0,0,0,.07)">'+
+        '<div class="theme-card__swatch" style="background:'+pv.accent+'"></div>'+
+        '<div class="theme-card__swatch" style="background:'+pv.surface+';border:1px solid rgba(0,0,0,.12)"></div>'+
+        '<div class="theme-card__swatch" style="background:'+pv.ink+'"></div>'+
+      '</div>'+
+      '<div class="theme-card__footer"><span>'+esc(t.name)+'</span><div class="theme-check"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>'+
+    '</div>';
+  }).join('');
+  $qsa('.theme-card').forEach(function(card){
+    card.addEventListener('click',function(){
+      var id=card.getAttribute('data-theme-id');
+      var data=QA.loadData();data.theme=id;
+      QA.saveData(data);
+      $qsa('.theme-card').forEach(function(c){c.classList.remove('is-active');});
+      card.classList.add('is-active');
+      toast('Theme updated — changes apply live on all open tabs');
+      refreshStorage();
+    });
+  });
+}
+
+/* ══════════════════════ MEDIA ══════════════════════ */
+function buildMediaCard(cfg){
+  var card=document.createElement('div');
+  card.className='media-card';
+  var hasImg=!!(cfg.current&&cfg.current.length>10);
+  card.innerHTML=
+    '<div class="media-card__preview">'+
+      (hasImg?'<img src="'+cfg.current.replace(/"/g,'&quot;')+'" alt="'+esc(cfg.label)+'">':'<div class="placeholder"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>No image yet</span></div>')+
+    '</div>'+
+    '<div class="media-card__info">'+
+      '<h4>'+esc(cfg.label)+'</h4>'+
+      '<p>'+esc(cfg.hint||'JPG, PNG, WebP')+'</p>'+
+      '<div class="upload-btn btn btn--ghost btn--sm">'+
+        (hasImg?'Replace':'Upload')+
+        '<input type="file" accept="image/*" class="media-upload-input">'+
+      '</div>'+
+      '<div class="upload-progress"><div class="upload-progress__fill"></div></div>'+
+      (hasImg?'<button class="btn btn--sm" style="color:var(--danger);font-size:.75rem;margin-top:6px;padding:4px 0" data-media-clear="'+esc(cfg.id)+'">Remove image</button>':'')+
+    '</div>';
+
+  $qs('.media-upload-input',card).addEventListener('change',function(){
+    var file=this.files[0];if(!file)return;
+    var prog=$qs('.upload-progress',card);
+    var fill=$qs('.upload-progress__fill',card);
+    prog.style.display='block';fill.style.width='30%';
+    var maxDim=cfg.maxDim||1200;
+    QA.compressImage(file,maxDim,.82).then(function(dataUrl){
+      fill.style.width='100%';
+      var data=QA.loadData();
+      setNested(data,cfg.dataPath,dataUrl);
+      var res=QA.saveData(data);
+      if(res.ok){toast(cfg.label+' updated');refreshStorage();renderMediaGrid();}
+      else if(res.quota){toast('Storage full — remove other images first','error');}
+      setTimeout(function(){prog.style.display='none';},600);
+    }).catch(function(err){toast(err.message,'error');prog.style.display='none';});
+  });
+
+  var clearBtn=$qs('[data-media-clear]',card);
+  if(clearBtn){clearBtn.addEventListener('click',function(){
+    confirm('Remove Image','Remove this image and revert to the placeholder?',function(){
+      var data=QA.loadData();
+      setNested(data,cfg.dataPath,'');
+      QA.saveData(data);refreshStorage();renderMediaGrid();toast('Image removed','warn');
+    });
+  });}
+  return card;
+}
+
+/* ══════════════════════ CV / RESUME ══════════════════════ */
+function buildCvCard(data){
+  var card=document.createElement('div');
+  card.className='media-card';
+  var hasCv=!!(data.media.cvUrl&&data.media.cvUrl.length>10);
+  var fileName=data.media.cvFileName||'';
+  card.innerHTML=
+    '<div class="media-card__preview">'+
+      (hasCv?'<div class="placeholder"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M15 3v5h5"/></svg><span>'+esc(fileName||'CV uploaded')+'</span></div>':'<div class="placeholder"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M15 3v5h5"/></svg><span>No CV yet</span></div>')+
+    '</div>'+
+    '<div class="media-card__info">'+
+      '<h4>Resume / CV</h4>'+
+      '<p>Shown as a "Download CV" button on the Home &amp; About pages. PDF recommended, max 8MB.</p>'+
+      '<div class="upload-btn btn btn--ghost btn--sm">'+
+        (hasCv?'Replace':'Upload PDF')+
+        '<input type="file" accept="application/pdf,.pdf" class="cv-upload-input">'+
+      '</div>'+
+      '<div class="upload-progress"><div class="upload-progress__fill"></div></div>'+
+      (hasCv?'<button class="btn btn--sm" style="color:var(--danger);font-size:.75rem;margin-top:6px;padding:4px 0" id="cvClearBtn">Remove CV</button>':'')+
+    '</div>';
+
+  $qs('.cv-upload-input',card).addEventListener('change',function(){
+    var file=this.files[0];if(!file)return;
+    var prog=$qs('.upload-progress',card);
+    var fill=$qs('.upload-progress__fill',card);
+    prog.style.display='block';fill.style.width='30%';
+    QA.readFileAsDataURL(file,8*1024*1024).then(function(dataUrl){
+      fill.style.width='100%';
+      var d=QA.loadData();
+      d.media.cvUrl=dataUrl;
+      d.media.cvFileName=file.name;
+      var res=QA.saveData(d);
+      if(res.ok){toast('CV uploaded');refreshStorage();renderMediaGrid();}
+      else if(res.quota){toast('Storage full — remove other images first','error');}
+      setTimeout(function(){prog.style.display='none';},600);
+    }).catch(function(err){toast(err.message,'error');prog.style.display='none';});
+  });
+
+  var clearBtn=$qs('#cvClearBtn',card);
+  if(clearBtn){clearBtn.addEventListener('click',function(){
+    confirm('Remove CV','Remove the uploaded CV and hide the download button?',function(){
+      var d=QA.loadData();
+      d.media.cvUrl='';d.media.cvFileName='';
+      QA.saveData(d);refreshStorage();renderMediaGrid();toast('CV removed','warn');
+    });
+  });}
+  return card;
+}
+
+function setNested(obj,path,val){
+  // path like "media.profilePhoto" or "portfolio.0.thumbImage"
+  var parts=path.split('.');
+  var cur=obj;
+  for(var i=0;i<parts.length-1;i++){
+    var k=parts[i];
+    var ki=parseInt(k,10);
+    cur=isNaN(ki)?cur[k]:cur[ki];
+  }
+  var lastKey=parts[parts.length-1];
+  var lastIdx=parseInt(lastKey,10);
+  if(isNaN(lastIdx)){cur[lastKey]=val;}else{cur[lastIdx]=val;}
+}
+
+function renderMediaGrid(){
+  var data=QA.loadData();
+  var cards=[];
+  // Resume / CV
+  cards.push(buildCvCard(data));
+  // Profile photo
+  cards.push(buildMediaCard({id:'profilePhoto',label:'Profile Photo',hint:'Hero portrait on Home page',dataPath:'media.profilePhoto',current:data.media.profilePhoto,maxDim:800}));
+  // Project thumbnails
+  data.portfolio.forEach(function(p,i){
+    cards.push(buildMediaCard({
+      id:'proj-'+p.id,
+      label:p.title+' Thumbnail',
+      hint:'Portfolio card & Home work grid',
+      dataPath:'portfolio.'+i+'.thumbImage',
+      current:p.thumbImage,
+      maxDim:900
+    }));
+  });
+  // Partner logos
+  data.partners.forEach(function(pt,i){
+    cards.push(buildMediaCard({
+      id:'partner-'+pt.id,
+      label:pt.name+' Logo',
+      hint:'Scrolling marquee',
+      dataPath:'partners.'+i+'.logoImage',
+      current:pt.logoImage,
+      maxDim:400
+    }));
+  });
+  var grid=$id('mediaGrid');grid.innerHTML='';
+  cards.forEach(function(c){grid.appendChild(c);});
+}
+
+/* ══════════════════════ SETTINGS ══════════════════════ */
+$id('changePwdBtn').addEventListener('click',function(){
+  var cur=$id('pwdCurrent').value;
+  var nw=$id('pwdNew').value;
+  var cf=$id('pwdConfirm').value;
+  var creds=QA.getCredentials();
+  if(cur!==creds.password){toast('Current password is incorrect','error');return;}
+  if(nw.length<8){toast('New password must be at least 8 characters','warn');return;}
+  if(nw!==cf){toast('Passwords do not match','warn');return;}
+  QA.setCredentials(creds.username,nw);
+  $id('pwdCurrent').value='';$id('pwdNew').value='';$id('pwdConfirm').value='';
+  toast('Password updated — remember to note it somewhere safe!');
+  renderDashboard(QA.loadData());
+});
+$id('resetDataBtn').addEventListener('click',function(){
+  confirm('Reset All Content','This will remove ALL your edits and restore the original defaults. Images will also be lost. This cannot be undone.',function(){
+    QA.resetData();
+    initAll();
+    toast('Site content reset to defaults','warn');
+  });
+});
+
+/* ══════════════════════ INIT ══════════════════════ */
+function initAll(){
+  var data=QA.loadData();
+  renderDashboard(data);
+  renderContentTabs();renderContentFields();
+  renderServices();
+  renderPortfolio();
+  renderAchievements();
+  renderContact();
+  renderPartners();
+  renderThemeGrid();
+  renderMediaGrid();
+  refreshStorage();
+}
+function initApp(){initAll();}
+
+// re-init content fields when switching content tabs (already handled above)
+// quick-link nav fix (section attr on <a> tag)
+document.addEventListener('click',function(e){
+  var el=e.target.closest('[data-section]');
+  if(el&&el.classList.contains('nav-item-link')){e.preventDefault();setSection(el.getAttribute('data-section'));}
+});
+
+checkAuth();
+})();
+</script>
+</body>
+</html>
