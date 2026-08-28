@@ -202,7 +202,7 @@ section { position: relative; }
 }
 
 .section-head {
-  max-width: 640px;
+  max-width: 600px;
   margin-bottom: 36px;
 }
 .section-head h2,
