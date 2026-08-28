@@ -248,7 +248,12 @@ ul{list-style:none}
 .item-card__body{padding:16px;display:none}
 .item-card.is-open .item-card__body{display:block}
 .item-card__actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
-
+.ach-drag-handle{display:flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;color:var(--muted);cursor:grab;touch-action:none;border-radius:6px}
+.ach-drag-handle:hover{background:var(--line);color:var(--ink)}
+.ach-drag-handle:active{cursor:grabbing}
+.ach-drag-handle svg{width:16px;height:16px}
+#achievementsList .item-card.is-dragging{opacity:.35;border-style:dashed}
+#achievementsList .item-card{transition:transform .15s ease}
 .field-row{display:grid;gap:12px;margin-bottom:12px}
 .field-row--2{grid-template-columns:1fr 1fr}
 .field-group{display:flex;flex-direction:column;gap:5px}
@@ -565,7 +570,7 @@ ul{list-style:none}
       <!-- ────────── ACHIEVEMENTS ────────── -->
       <div class="panel-section" id="sec-achievements">
         <div class="section-hd">
-          <div><h2>Achievements</h2><p>Add, edit, or remove professional milestones.</p></div>
+          <div><h2>Achievements</h2><p>Add, edit, or remove professional milestones. Drag the ⠿ handle to reorder — the order here is the order shown on the site.</p></div>
           <button class="btn btn--primary" id="addAchievementBtn">+ Add Achievement</button>
         </div>
         <div class="item-list" id="achievementsList"></div>
@@ -1153,7 +1158,8 @@ function buildAchCard(a){
   card.className='item-card';
   card.setAttribute('data-ach-id',a.id);
   card.innerHTML=
-    '<div class="item-card__head">'+
+       '<div class="item-card__head">'+
+      '<span class="ach-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>'+
       '<h4>'+esc(a.title)+'</h4>'+
       '<span class="badge badge--warn">'+esc(a.year)+'</span>'+
       '<svg class="item-card__toggle" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'+
@@ -1175,7 +1181,25 @@ function buildAchCard(a){
       '</div>'+
     '</div>';
 
-  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+   $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+
+  var handle=$qs('.ach-drag-handle',card);
+  handle.addEventListener('click',function(e){e.stopPropagation();});
+  handle.addEventListener('mousedown',function(){
+    card.draggable=true;
+    document.addEventListener('mouseup',armReset);
+  });
+  function armReset(){card.draggable=false;document.removeEventListener('mouseup',armReset);}
+  card.addEventListener('dragstart',function(e){
+    card.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed='move';
+    try{e.dataTransfer.setData('text/plain',a.id);}catch(err){}
+  });
+  card.addEventListener('dragend',function(){
+    card.classList.remove('is-dragging');
+    card.draggable=false;
+    persistAchievementOrder();
+  });
 
   var selectedIcon=a.icon||'star';
   bindIconPicker(card,function(ic){selectedIcon=ic;});
@@ -1210,6 +1234,36 @@ function renderAchievements(){
   var data=QA.loadData();
   var list=$id('achievementsList');list.innerHTML='';
   data.achievements.forEach(function(a){list.appendChild(buildAchCard(a));});
+}
+
+(function(){
+  var achList=$id('achievementsList');
+  achList.addEventListener('dragover',function(e){
+    e.preventDefault();
+    var dragging=$qs('.is-dragging',achList);
+    if(!dragging)return;
+    var siblings=$qsa('.item-card:not(.is-dragging)',achList);
+    var closest=null,closestOffset=-Infinity;
+    siblings.forEach(function(child){
+      var box=child.getBoundingClientRect();
+      var offset=e.clientY-box.top-box.height/2;
+      if(offset<0&&offset>closestOffset){closestOffset=offset;closest=child;}
+    });
+    if(closest==null){achList.appendChild(dragging);}
+    else{achList.insertBefore(dragging,closest);}
+  });
+})();
+function persistAchievementOrder(){
+  var data=QA.loadData();
+  var domOrder=$qsa('.item-card',$id('achievementsList')).map(function(el){return el.getAttribute('data-ach-id');});
+  var byId={};
+  data.achievements.forEach(function(a){byId[a.id]=a;});
+  var reordered=domOrder.map(function(id){return byId[id];}).filter(Boolean);
+  data.achievements.forEach(function(a){if(domOrder.indexOf(a.id)===-1)reordered.push(a);});
+  data.achievements=reordered;
+  var res=QA.saveData(data);
+  if(res.ok){toast('Achievement order updated');refreshStorage();}
+  else{toast('Save failed','error');}
 }
 $id('addAchievementBtn').addEventListener('click',function(){
   var data=QA.loadData();
