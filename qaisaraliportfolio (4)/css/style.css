@@ -1533,7 +1533,7 @@ body.lightbox-open { overflow: hidden; }
   letter-spacing: 0.05em;
 }
 .achievement-card__represents-value { font-size: 0.9rem; font-weight: 600; color: var(--color-ink); }
-.achievement-card__represents-value a { color: var(--accent-300); text-decoration: none; }
+.achievement-card__represents-value a { color: #fbda52; text-decoration: none; }
 .achievement-card__represents-value a:hover { text-decoration: underline; }
 .achievement-card__desc { color: var(--color-muted); font-size: 0.96rem; line-height: 1.7; }
 
