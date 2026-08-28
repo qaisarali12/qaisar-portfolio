@@ -22,7 +22,7 @@
    Until this is filled in, the form keeps working exactly as before: it
    shows the "message received" confirmation locally, but nothing is
    actually emailed anywhere. */
-const CONTACT_FORM_ENDPOINT = ''; // e.g. 'https://formspree.io/f/xxxxxxxx'
+const CONTACT_FORM_ENDPOINT = 'https://formspree.io/f/mzebpavn'; // e.g. 'https://formspree.io/f/xxxxxxxx'
 
 document.addEventListener('DOMContentLoaded', () => {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
