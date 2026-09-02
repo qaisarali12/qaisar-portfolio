@@ -1715,7 +1715,7 @@ body.lightbox-open { overflow: hidden; }
   .cta-final__box { padding: 52px 26px; }
   .testimonial-card { padding: 36px 24px; }
   .portfolio-grid { grid-template-columns: 1fr; }
-  .filter-tabs { padding: 5px; gap: 0; }
+  .filter-tabs { padding: 5px; gap: 0; border-radius:18px !important; }
   .filter-tab { padding: 10px 14px; font-size: .8rem; }
   .lightbox__gallery { padding: 12px 22px 0; }
   .lightbox__body { padding: 26px 22px 30px; }
