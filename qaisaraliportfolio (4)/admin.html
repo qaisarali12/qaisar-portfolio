@@ -252,8 +252,8 @@ ul{list-style:none}
 .ach-drag-handle:hover{background:var(--line);color:var(--ink)}
 .ach-drag-handle:active{cursor:grabbing}
 .ach-drag-handle svg{width:16px;height:16px}
-#achievementsList .item-card.is-dragging{opacity:.35;border-style:dashed}
-#achievementsList .item-card{transition:transform .15s ease}
+#achievementsList .item-card.is-dragging,#portfolioList .item-card.is-dragging{opacity:.35;border-style:dashed}
+#achievementsList .item-card,#portfolioList .item-card{transition:transform .15s ease}
 .field-row{display:grid;gap:12px;margin-bottom:12px}
 .field-row--2{grid-template-columns:1fr 1fr}
 .field-group{display:flex;flex-direction:column;gap:5px}
@@ -561,7 +561,7 @@ ul{list-style:none}
       <!-- ────────── PORTFOLIO ────────── -->
       <div class="panel-section" id="sec-portfolio">
         <div class="section-hd">
-          <div><h2>Portfolio Projects</h2><p>Manage your projects, thumbnails, descriptions, and live links.</p></div>
+          <div><h2>Portfolio Projects</h2><p>Manage your projects, thumbnails, descriptions, and live links. Drag the ⣿ handle to reorder — the site follows this order.</p></div>
           <button class="btn btn--primary" id="addProjectBtn">+ Add Project</button>
         </div>
         <div class="item-list" id="portfolioList"></div>
@@ -994,7 +994,8 @@ function buildProjectCard(p){
   card.className='item-card';
   card.setAttribute('data-proj-id',p.id);
   card.innerHTML=
-    '<div class="item-card__head">'+
+        '<div class="item-card__head">'+
+      '<span class="ach-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>'+
       '<h4>'+esc(p.title)+'</h4>'+
       '<span class="badge badge--success">'+esc(CAT_LABELS[p.category]||p.category)+'</span>'+
       '<svg class="item-card__toggle" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'+
@@ -1034,7 +1035,26 @@ function buildProjectCard(p){
       '</div>'+
     '</div>';
 
-  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+    $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+
+  // drag-to-reorder
+  var pHandle=$qs('.ach-drag-handle',card);
+  pHandle.addEventListener('click',function(e){e.stopPropagation();});
+  pHandle.addEventListener('mousedown',function(){
+    card.draggable=true;
+    document.addEventListener('mouseup',pArmReset);
+  });
+  function pArmReset(){card.draggable=false;document.removeEventListener('mouseup',pArmReset);}
+  card.addEventListener('dragstart',function(e){
+    card.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed='move';
+    try{e.dataTransfer.setData('text/plain',p.id);}catch(err){}
+  });
+  card.addEventListener('dragend',function(){
+    card.classList.remove('is-dragging');
+    card.draggable=false;
+    persistProjectOrder();
+  });
 
   // tag inputs
   var tagInput=TagInput($qs('[data-proj-tags]',card));
@@ -1140,7 +1160,36 @@ function buildProjectCard(p){
 function renderPortfolio(){
   var data=QA.loadData();
   var list=$id('portfolioList');list.innerHTML='';
-  data.portfolio.forEach(function(p){list.appendChild(buildProjectCard(p));});
+    data.portfolio.forEach(function(p){list.appendChild(buildProjectCard(p));});
+}
+(function(){
+  var projList=$id('portfolioList');
+  projList.addEventListener('dragover',function(e){
+    e.preventDefault();
+    var dragging=$qs('.is-dragging',projList);
+    if(!dragging)return;
+    var siblings=$qsa('.item-card:not(.is-dragging)',projList);
+    var closest=null,closestOffset=-Infinity;
+    siblings.forEach(function(child){
+      var box=child.getBoundingClientRect();
+      var offset=e.clientY-box.top-box.height/2;
+      if(offset<0&&offset>closestOffset){closestOffset=offset;closest=child;}
+    });
+    if(closest==null){projList.appendChild(dragging);}
+    else{projList.insertBefore(dragging,closest);}
+  });
+})();
+function persistProjectOrder(){
+  var data=QA.loadData();
+  var domOrder=$qsa('.item-card',$id('portfolioList')).map(function(el){return el.getAttribute('data-proj-id');});
+  var byId={};
+  data.portfolio.forEach(function(p){byId[p.id]=p;});
+  var reordered=domOrder.map(function(id){return byId[id];}).filter(Boolean);
+  data.portfolio.forEach(function(p){if(domOrder.indexOf(p.id)===-1)reordered.push(p);});
+  data.portfolio=reordered;
+  var res=QA.saveData(data);
+  if(res.ok){toast('Project order updated');refreshStorage();}
+  else{toast('Save failed','error');}
 }
 $id('addProjectBtn').addEventListener('click',function(){
   var data=QA.loadData();
