@@ -17,6 +17,11 @@
 (function (global) {
   'use strict';
 
+  /* This file is loaded early (in <head>) so the content fetch starts as soon
+     as possible. The original tag at the bottom of each page is harmless — this
+     guard makes the second execution a no-op. */
+  if (global.QASite) return;
+
   var STORAGE_KEY = 'qa_site_data_v1';
   var AUTH_KEY = 'qa_admin_auth_v1';
   var SESSION_KEY = 'qa_admin_session_v1';
@@ -38,6 +43,43 @@
   var cloudData = null;      // content fetched from the database
   var cloudSession = null;   // Supabase auth session (admin only)
   var sb = null;             // full supabase-js client — only loaded on admin.html
+
+  /* Open the network connection to the backend straight away, so the DNS
+     lookup and TLS handshake are already done by the time we ask for content.
+     Saves roughly 100–300ms on a first visit. */
+  function preconnect() {
+    if (!cloudReady || !document.head) return;
+    ['preconnect', 'dns-prefetch'].forEach(function (rel) {
+      var l = document.createElement('link');
+      l.rel = rel; l.href = SUPABASE_URL; l.crossOrigin = 'anonymous';
+      document.head.appendChild(l);
+    });
+  }
+  try { preconnect(); } catch (e) {}
+
+  /* True when we already hold a cached copy — lets the renderer paint instantly
+     on repeat visits instead of waiting for the network. */
+  function hasCache() {
+    try { return !!cloudData || !!localStorage.getItem(STORAGE_KEY); }
+    catch (e) { return false; }
+  }
+
+  /* Start downloading the images the moment their URLs are known, in parallel
+     with rendering, rather than waiting for the markup to land first. */
+  function preloadImages(data) {
+    if (!data || !document.head) return;
+    var urls = [];
+    if (data.media && data.media.profilePhoto) urls.push(data.media.profilePhoto);
+    (data.portfolio || []).slice(0, 3).forEach(function (p) {
+      if (p.thumbImage) urls.push(p.thumbImage);
+    });
+    urls.forEach(function (u) {
+      if (u.indexOf('data:') === 0) return;
+      var l = document.createElement('link');
+      l.rel = 'preload'; l.as = 'image'; l.href = u;
+      document.head.appendChild(l);
+    });
+  }
 
   function sbClient() {
     if (sb) return sb;
@@ -272,14 +314,20 @@
     if (!cloudReady || typeof fetch !== 'function') return Promise.resolve(false);
     var url = SUPABASE_URL.replace(/\/+$/, '') +
       '/rest/v1/site_content?id=eq.' + CONTENT_ROW_ID + '&select=data';
-    return fetch(url, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
-    })
+    // New-style publishable keys (sb_publishable_…) must be sent on the apikey
+    // header ONLY — they aren't JWTs, so an Authorization: Bearer header makes
+    // the gateway reject the request. Legacy anon keys (eyJ…) accept both.
+    var headers = { apikey: SUPABASE_ANON_KEY };
+    if (SUPABASE_ANON_KEY.indexOf('eyJ') === 0) {
+      headers.Authorization = 'Bearer ' + SUPABASE_ANON_KEY;
+    }
+    return fetch(url, { headers: headers })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function (rows) {
         if (!rows || !rows.length || !rows[0].data) return false;
         cloudData = rows[0].data;
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData)); } catch (e) {}
+        try { preloadImages(cloudData); } catch (e) {}
         return true;
       })
       .catch(function (e) {
@@ -517,6 +565,7 @@
     readFileAsDataURL: readFileAsDataURL,
     estimateStorageUsage: estimateStorageUsage,
     cloudEnabled: function () { return cloudReady; },
+    hasCache: hasCache,
     cloudLogin: cloudLogin,
     cloudLogout: cloudLogout,
     changeCloudPassword: changeCloudPassword
