@@ -29,7 +29,7 @@
      requires a signed-in admin session, enforced by Row Level Security in the
      database itself, so nobody can edit the site by copying this key.
      ========================================================================== */
-  var SUPABASE_URL = 'https://abcdefghijk.supabase.co';
+  var SUPABASE_URL = 'https://tabbpdhibxauajhmyqpz.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_m_sk1HlNAu2oKB9K7sNmOQ_yq17VYU2';
   var CONTENT_ROW_ID = 1;
   var MEDIA_BUCKET = 'site-media';
