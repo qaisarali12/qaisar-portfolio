@@ -254,6 +254,7 @@ ul{list-style:none}
 .ach-drag-handle svg{width:16px;height:16px}
 #achievementsList .item-card.is-dragging,#portfolioList .item-card.is-dragging{opacity:.35;border-style:dashed}
 #achievementsList .item-card,#portfolioList .item-card{transition:transform .15s ease}
+
 .field-row{display:grid;gap:12px;margin-bottom:12px}
 .field-row--2{grid-template-columns:1fr 1fr}
 .field-group{display:flex;flex-direction:column;gap:5px}
@@ -404,8 +405,8 @@ ul{list-style:none}
         ⚠️ <strong>Change your password before going live.</strong> Use Settings → Change Password after logging in.
       </div>
       <div class="form-group">
-        <label for="loginUser">Username</label>
-        <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
+        <label for="loginUser">Email</label>
+        <input type="email" id="loginUser" placeholder="you@example.com" autocomplete="username">
       </div>
       <div class="form-group">
         <label for="loginPass">Password</label>
@@ -661,6 +662,7 @@ ul{list-style:none}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.9/dist/umd/supabase.js"></script>
 <script src="js/site-data.js"></script>
 <script>
 /* ════════════════════════════════════════════════════════════
@@ -720,14 +722,20 @@ $id('loginUser').addEventListener('keydown',function(e){if(e.key==='Enter')doLog
 function doLogin(){
   var u=$id('loginUser').value.trim();
   var p=$id('loginPass').value;
-  if(QA.checkLogin(u,p)){
-    QA.setLoggedIn(true);
-    showApp();
-  } else {
+  var btn=$id('loginBtn');
+  btn.disabled=true;btn.textContent='Signing in…';
+  QA.cloudLogin(u,p).then(function(res){
+    btn.disabled=false;btn.textContent='Sign In';
+    if(res.ok){showApp();return;}
     $id('loginError').style.display='block';
+    $id('loginError').textContent=res.error||'Invalid username or password.';
     $id('loginPass').value='';
     revealDefaultCreds();
-  }
+  }).catch(function(err){
+    btn.disabled=false;btn.textContent='Sign In';
+    $id('loginError').style.display='block';
+    $id('loginError').textContent=err.message||'Sign in failed.';
+  });
 }
 /* Credentials stay hidden on the login screen so they aren't shown to
    every visitor by default. Only reveal the hint after a failed attempt
@@ -760,7 +768,7 @@ $qsa('.nav-item').forEach(function(btn){
   if(!btn.id)btn.addEventListener('click',function(){var s=btn.getAttribute('data-section');if(s)setSection(s);});
 });
 $id('logoutBtn').addEventListener('click',function(){
-  QA.setLoggedIn(false);
+  QA.cloudLogout();
   $id('adminApp').classList.add('hidden');
   $id('loginScreen').classList.remove('hidden');
   $id('loginUser').value='';$id('loginPass').value='';
@@ -994,7 +1002,7 @@ function buildProjectCard(p){
   card.className='item-card';
   card.setAttribute('data-proj-id',p.id);
   card.innerHTML=
-        '<div class="item-card__head">'+
+    '<div class="item-card__head">'+
       '<span class="ach-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>'+
       '<h4>'+esc(p.title)+'</h4>'+
       '<span class="badge badge--success">'+esc(CAT_LABELS[p.category]||p.category)+'</span>'+
@@ -1035,7 +1043,7 @@ function buildProjectCard(p){
       '</div>'+
     '</div>';
 
-    $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
 
   // drag-to-reorder
   var pHandle=$qs('.ach-drag-handle',card);
@@ -1160,8 +1168,11 @@ function buildProjectCard(p){
 function renderPortfolio(){
   var data=QA.loadData();
   var list=$id('portfolioList');list.innerHTML='';
-    data.portfolio.forEach(function(p){list.appendChild(buildProjectCard(p));});
+  data.portfolio.forEach(function(p){list.appendChild(buildProjectCard(p));});
 }
+/* Drag-to-reorder for the Portfolio list — same behaviour as Achievements.
+   The DOM order of .item-card elements is saved back to data.portfolio, and
+   the public site renders projects in that array order. */
 (function(){
   var projList=$id('portfolioList');
   projList.addEventListener('dragover',function(e){
@@ -1207,7 +1218,7 @@ function buildAchCard(a){
   card.className='item-card';
   card.setAttribute('data-ach-id',a.id);
   card.innerHTML=
-       '<div class="item-card__head">'+
+    '<div class="item-card__head">'+
       '<span class="ach-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>'+
       '<h4>'+esc(a.title)+'</h4>'+
       '<span class="badge badge--warn">'+esc(a.year)+'</span>'+
@@ -1230,7 +1241,7 @@ function buildAchCard(a){
       '</div>'+
     '</div>';
 
-   $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
+  $qs('.item-card__head',card).addEventListener('click',function(){card.classList.toggle('is-open');});
 
   var handle=$qs('.ach-drag-handle',card);
   handle.addEventListener('click',function(e){e.stopPropagation();});
@@ -1285,6 +1296,10 @@ function renderAchievements(){
   data.achievements.forEach(function(a){list.appendChild(buildAchCard(a));});
 }
 
+/* Drag-to-reorder for the Achievements list. The order of .item-card
+   elements in the DOM is what gets saved back to data.achievements, and
+   the public site renders achievements in that same array order — so
+   reordering here is exactly what shows up on the live site. */
 (function(){
   var achList=$id('achievementsList');
   achList.addEventListener('dragover',function(e){
@@ -1605,14 +1620,18 @@ $id('changePwdBtn').addEventListener('click',function(){
   var cur=$id('pwdCurrent').value;
   var nw=$id('pwdNew').value;
   var cf=$id('pwdConfirm').value;
-  var creds=QA.getCredentials();
-  if(cur!==creds.password){toast('Current password is incorrect','error');return;}
   if(nw.length<8){toast('New password must be at least 8 characters','warn');return;}
   if(nw!==cf){toast('Passwords do not match','warn');return;}
-  QA.setCredentials(creds.username,nw);
-  $id('pwdCurrent').value='';$id('pwdNew').value='';$id('pwdConfirm').value='';
-  toast('Password updated — remember to note it somewhere safe!');
-  renderDashboard(QA.loadData());
+  if(!QA.cloudEnabled()){
+    var creds=QA.getCredentials();
+    if(cur!==creds.password){toast('Current password is incorrect','error');return;}
+  }
+  QA.changeCloudPassword(nw).then(function(res){
+    if(!res.ok){toast(res.error||'Password change failed','error');return;}
+    $id('pwdCurrent').value='';$id('pwdNew').value='';$id('pwdConfirm').value='';
+    toast('Password updated — remember to note it somewhere safe!');
+    renderDashboard(QA.loadData());
+  });
 });
 $id('resetDataBtn').addEventListener('click',function(){
   confirm('Reset All Content','This will remove ALL your edits and restore the original defaults. Images will also be lost. This cannot be undone.',function(){
@@ -1645,7 +1664,10 @@ document.addEventListener('click',function(e){
   if(el&&el.classList.contains('nav-item-link')){e.preventDefault();setSection(el.getAttribute('data-section'));}
 });
 
-checkAuth();
+QA.ready.then(checkAuth).catch(checkAuth);
+document.addEventListener('qa:cloudsave',function(e){
+  if(!e.detail.ok)toast(e.detail.error||'Could not publish to the live site','error');
+});
 })();
 </script>
 </body>
