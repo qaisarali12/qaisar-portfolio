@@ -207,13 +207,30 @@
     document.dispatchEvent(new CustomEvent('qa:rendered', { detail: data }));
   }
 
-  document.addEventListener('DOMContentLoaded', renderAll);
+  /* First paint strategy:
+     — Repeat visit (we hold a cached copy): render immediately, then refresh
+       silently when the live copy arrives.
+     — First visit (nothing cached): waiting ~200ms for the live content avoids
+       showing placeholder thumbnails that then swap to the real images. A
+       safety timer guarantees the page still renders if the network is slow. */
+  var painted = false;
+  function firstPaint() {
+    if (painted) return;
+    painted = true;
+    renderAll();
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!QA.hasCache || QA.hasCache() || !QA.ready) { firstPaint(); return; }
+    var safety = setTimeout(firstPaint, 900);
+    QA.ready.then(function () { clearTimeout(safety); firstPaint(); })
+            .catch(function () { clearTimeout(safety); firstPaint(); });
+  });
 
   // Live update: another tab (e.g. the Admin Panel) changed the data
   window.addEventListener('storage', function (e) {
     if (e.key === QA.STORAGE_KEY) renderAll();
   });
   // Live update: same tab / same-window change (e.g. Admin Panel preview iframe)
-  document.addEventListener('qa:datachange', renderAll);
+  document.addEventListener('qa:datachange', function () { painted = true; renderAll(); });
 
 })();
