@@ -22,7 +22,7 @@
    Until this is filled in, the form keeps working exactly as before: it
    shows the "message received" confirmation locally, but nothing is
    actually emailed anywhere. */
-const CONTACT_FORM_ENDPOINT = 'https://formspree.io/f/mzebpavn'; // e.g. 'https://formspree.io/f/xxxxxxxx'
+const CONTACT_FORM_ENDPOINT = ''; // e.g. 'https://formspree.io/f/xxxxxxxx'
 
 document.addEventListener('DOMContentLoaded', () => {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -56,7 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
      Panel (Media & Assets → Resume / CV), so a fresh install never shows a
      dead-end download button. */
   const cvLinks = document.querySelectorAll('[data-cv-link]');
-  if (cvLinks.length && window.QASite) {
+  const wireCvLinks = () => {
+    if (!cvLinks.length || !window.QASite) return;
     const siteData = window.QASite.loadData();
     const cvUrl = siteData.media && siteData.media.cvUrl;
     cvLinks.forEach(link => {
@@ -69,7 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
         link.setAttribute('hidden', '');
       }
     });
-  }
+  };
+  wireCvLinks();
+  // Re-run once the live content arrives from the database
+  document.addEventListener('qa:datachange', wireCvLinks);
 
   /* ---------- Scroll reveal ---------- */
   const revealEls = document.querySelectorAll('.reveal');
