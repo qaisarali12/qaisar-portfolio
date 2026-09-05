@@ -23,6 +23,30 @@
 
   var DEFAULT_CREDENTIALS = { username: 'admin', password: 'Admin@123' };
 
+  /* ==========================================================================
+     CLOUD BACKEND (Supabase) — paste your two values here.
+     Both are safe to be public: the anon key can only READ content. Writing
+     requires a signed-in admin session, enforced by Row Level Security in the
+     database itself, so nobody can edit the site by copying this key.
+     ========================================================================== */
+  var SUPABASE_URL = 'https://abcdefghijk.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_m_sk1HlNAu2oKB9K7sNmOQ_yq17VYU2';
+  var CONTENT_ROW_ID = 1;
+  var MEDIA_BUCKET = 'site-media';
+
+  var cloudReady = SUPABASE_URL.indexOf('PASTE_') !== 0;
+  var cloudData = null;      // content fetched from the database
+  var cloudSession = null;   // Supabase auth session (admin only)
+  var sb = null;             // full supabase-js client — only loaded on admin.html
+
+  function sbClient() {
+    if (sb) return sb;
+    if (!cloudReady || !global.supabase || !global.supabase.createClient) return null;
+    try { sb = global.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+    catch (e) { console.warn('QA cloud: client init failed', e); sb = null; }
+    return sb;
+  }
+
   /* ---------- Icon library (shared between public render + admin pickers) ---------- */
   var ICONS = {
     layout: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8.5 9.5V20"/>',
@@ -225,9 +249,13 @@
     return override !== undefined ? override : base;
   }
 
-  /* ---------- Storage ---------- */
+  /* ---------- Storage ----------
+     Content now lives in the cloud database. localStorage is kept only as an
+     offline cache so a page still renders instantly (and survives a dropped
+     connection) while the fresh copy is being fetched. */
   function loadData() {
     try {
+      if (cloudData) return deepMerge(DEFAULTS, cloudData);
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return JSON.parse(JSON.stringify(DEFAULTS));
       var parsed = JSON.parse(raw);
@@ -238,17 +266,56 @@
     }
   }
 
+  /* Fetch the live content. Uses a plain REST call so the PUBLIC pages don't
+     have to download the Supabase library at all — keeps the site fast. */
+  function fetchCloudData() {
+    if (!cloudReady || typeof fetch !== 'function') return Promise.resolve(false);
+    var url = SUPABASE_URL.replace(/\/+$/, '') +
+      '/rest/v1/site_content?id=eq.' + CONTENT_ROW_ID + '&select=data';
+    return fetch(url, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+    })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (rows) {
+        if (!rows || !rows.length || !rows[0].data) return false;
+        cloudData = rows[0].data;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData)); } catch (e) {}
+        return true;
+      })
+      .catch(function (e) {
+        console.warn('QA cloud: could not load live content, using cached copy', e);
+        return false;
+      });
+  }
+
   function saveData(data) {
+    var result = { ok: true, cloud: cloudReady };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      // Same-tab listeners (the storage event only fires in OTHER tabs)
-      document.dispatchEvent(new CustomEvent('qa:datachange', { detail: data }));
-      return { ok: true };
     } catch (e) {
-      console.error('QA site-data: save failed', e);
-      var isQuota = e && (e.name === 'QuotaExceededError' || e.code === 22);
-      return { ok: false, quota: isQuota, error: e };
+      // Images live in cloud storage now, so this should never fill up.
+      console.warn('QA site-data: local cache write failed', e);
     }
+    cloudData = JSON.parse(JSON.stringify(data));
+    // Same-tab listeners (the storage event only fires in OTHER tabs)
+    document.dispatchEvent(new CustomEvent('qa:datachange', { detail: data }));
+
+    var client = sbClient();
+    if (client) {
+      client.from('site_content')
+        .upsert({ id: CONTENT_ROW_ID, data: data, updated_at: new Date().toISOString() })
+        .then(function (res) {
+          document.dispatchEvent(new CustomEvent('qa:cloudsave', {
+            detail: { ok: !res.error, error: res.error ? res.error.message : null }
+          }));
+        });
+    } else if (cloudReady) {
+      document.dispatchEvent(new CustomEvent('qa:cloudsave', {
+        detail: { ok: false, error: 'Not signed in — changes were not published.' }
+      }));
+      result.cloud = false;
+    }
+    return result;
   }
 
   function resetData() {
@@ -300,7 +367,41 @@
   }
 
   function isLoggedIn() {
+    if (cloudReady) return !!cloudSession;
     return sessionStorage.getItem(SESSION_KEY) === 'true';
+  }
+
+  /* Cloud sign-in. Falls back to the old local check if the backend isn't
+     configured yet, so the panel keeps working during setup. */
+  function cloudLogin(email, password) {
+    var client = sbClient();
+    if (!client) {
+      var ok = checkLogin(email, password);
+      if (ok) setLoggedIn(true);
+      return Promise.resolve({ ok: ok, error: ok ? null : 'Invalid username or password.' });
+    }
+    return client.auth.signInWithPassword({ email: email, password: password })
+      .then(function (res) {
+        if (res.error) return { ok: false, error: res.error.message };
+        cloudSession = res.data.session;
+        setLoggedIn(true);
+        return { ok: true };
+      });
+  }
+
+  function cloudLogout() {
+    var client = sbClient();
+    if (client) client.auth.signOut();
+    cloudSession = null;
+    setLoggedIn(false);
+  }
+
+  function changeCloudPassword(newPassword) {
+    var client = sbClient();
+    if (!client) { setCredentials(getCredentials().username, newPassword); return Promise.resolve({ ok: true }); }
+    return client.auth.updateUser({ password: newPassword }).then(function (res) {
+      return res.error ? { ok: false, error: res.error.message } : { ok: true };
+    });
   }
 
   function setLoggedIn(val) {
@@ -308,7 +409,29 @@
     else sessionStorage.removeItem(SESSION_KEY);
   }
 
-  /* ---------- Image compression (keeps localStorage usage sane) ---------- */
+  /* ---------- Cloud file storage ----------
+     Uploads a file/blob to the Supabase storage bucket and returns its public
+     URL. Storing URLs instead of base64 keeps the content row tiny, so pages
+     stay fast and images get proper CDN caching. */
+  function uploadToBucket(fileOrBlob, ext, contentType) {
+    var client = sbClient();
+    if (!client) return Promise.reject(new Error('Not signed in.'));
+    var name = 'm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    return client.storage.from(MEDIA_BUCKET)
+      .upload(name, fileOrBlob, { contentType: contentType, cacheControl: '31536000', upsert: false })
+      .then(function (res) {
+        if (res.error) throw new Error(res.error.message);
+        var pub = client.storage.from(MEDIA_BUCKET).getPublicUrl(name);
+        return pub.data.publicUrl;
+      });
+  }
+
+  function fileExt(file, fallback) {
+    var m = /\.([a-z0-9]+)$/i.exec(file && file.name ? file.name : '');
+    return m ? m[1].toLowerCase() : fallback;
+  }
+
+  /* ---------- Image compression (resizes, then uploads to cloud storage) ---------- */
   function compressImage(file, maxDim, quality) {
     maxDim = maxDim || 1200;
     quality = quality || 0.82;
@@ -330,8 +453,12 @@
           canvas.width = w; canvas.height = h;
           var ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          var dataUrl = canvas.toDataURL('image/jpeg', quality);
-          resolve(dataUrl);
+          // No backend configured (or not signed in) → keep the old base64 behaviour
+          if (!sbClient()) { resolve(canvas.toDataURL('image/jpeg', quality)); return; }
+          canvas.toBlob(function (blob) {
+            if (!blob) { resolve(canvas.toDataURL('image/jpeg', quality)); return; }
+            uploadToBucket(blob, 'jpg', 'image/jpeg').then(resolve).catch(reject);
+          }, 'image/jpeg', quality);
         };
         img.src = reader.result;
       };
@@ -345,6 +472,11 @@
       if (!file) { reject(new Error('Please choose a file.')); return; }
       if (file.size > maxBytes) {
         reject(new Error('File is too large (max ' + Math.round(maxBytes / 1024 / 1024) + 'MB).'));
+        return;
+      }
+      if (sbClient()) {
+        uploadToBucket(file, fileExt(file, 'pdf'), file.type || 'application/octet-stream')
+          .then(resolve).catch(reject);
         return;
       }
       var reader = new FileReader();
@@ -383,8 +515,30 @@
     setLoggedIn: setLoggedIn,
     compressImage: compressImage,
     readFileAsDataURL: readFileAsDataURL,
-    estimateStorageUsage: estimateStorageUsage
+    estimateStorageUsage: estimateStorageUsage,
+    cloudEnabled: function () { return cloudReady; },
+    cloudLogin: cloudLogin,
+    cloudLogout: cloudLogout,
+    changeCloudPassword: changeCloudPassword
   };
+
+  /* ---------- Boot ----------
+     Loads the live content (and, on the admin page, restores the signed-in
+     session) before anything renders. Everything waits on QASite.ready. */
+  global.QASite.ready = (function () {
+    var jobs = [fetchCloudData()];
+    var client = sbClient();
+    if (client) {
+      jobs.push(client.auth.getSession().then(function (res) {
+        cloudSession = (res && res.data && res.data.session) || null;
+      }).catch(function () { cloudSession = null; }));
+    }
+    return Promise.all(jobs).then(function () {
+      try { applyTheme(loadData().theme); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('qa:datachange', { detail: loadData() }));
+      return true;
+    });
+  })();
 
   // Apply the saved theme immediately (this file is also loaded early via the
   // inline head snippet on each page for zero-flash theming; this call makes
