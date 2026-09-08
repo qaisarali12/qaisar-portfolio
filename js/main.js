@@ -210,10 +210,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('load', () => moveHighlight(document.querySelector('.filter-tab.is-active')));
     window.addEventListener('resize', () => moveHighlight(document.querySelector('.filter-tab.is-active')));
 
-    filterTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        if (tab.classList.contains('is-active')) return;
-        filterTabs.forEach(t => t.classList.remove('is-active'));
+       document.addEventListener('click', (e) => {
+      const tab = e.target.closest('.filter-tab');
+      if (!tab) return;
+      if (tab.classList.contains('is-active')) return;
+
+      const portfolioCards = document.querySelectorAll('.portfolio-card');
+      filterTabs.forEach(t => t.classList.remove('is-active'));
         tab.classList.add('is-active');
         moveHighlight(tab);
 
@@ -236,9 +239,8 @@ document.addEventListener('DOMContentLoaded', () => {
               if (card.classList.contains('is-filtered-out')) card.style.display = 'none';
             }, prefersReducedMotion ? 0 : 480);
           }
-        });
+               });
       });
-    });
   }
 
   /* ---------- Lightbox ----------
@@ -248,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
      when a live URL has been set in the Admin Panel. Used on both the
      Home page teaser cards and the full Portfolio grid. */
   const lightbox = document.getElementById('lightbox');
-  if (lightbox && portfolioCards.length) {
+  if (lightbox) {
     const mediaEl = document.getElementById('lightboxMedia');
     const galleryEl = document.getElementById('lightboxGallery');
     const tagEl = document.getElementById('lightboxTag');
@@ -343,9 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (lastFocused) lastFocused.focus();
     }
 
-    portfolioCards.forEach(card => {
-      card.addEventListener('click', () => openLightbox(card));
-    });
+    document.addEventListener('click', (e) => {
+  const card = e.target.closest('.portfolio-card');
+  if (card) openLightbox(card);
+});
     lightbox.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeLightbox));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && lightbox.classList.contains('is-open')) closeLightbox();
